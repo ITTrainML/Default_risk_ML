@@ -60,3 +60,4 @@ print(con.sql("SELECT loaded,installed FROM duckdb_extensions() WHERE extension_
 print("Hellow")
 
 #test
+print("lil test")
