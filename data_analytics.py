@@ -58,3 +58,5 @@ print(con.sql("SELECT loaded,installed FROM duckdb_extensions() WHERE extension_
 
 #叫出duckui，請在下列程式中設定中斷點
 print("Hellow")
+
+#test
