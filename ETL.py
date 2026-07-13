@@ -1,12 +1,13 @@
 #%%
 #region[rgba(231,76,60,0.15)]
+## Colored Regions
 
 #### 先設置絕對路徑
 
 import os
 
 # 1. 定義你的目標資料夾路徑（前方加上 r 可以避免 Windows 反斜線引發的轉義字元錯誤）
-target_path = r"C:\Users\ittraining\Desktop\git\Default_risk_ML\data"
+target_path = r"D:\git\Default_risk_ML\data"
 
 # 2. 強制將 Python 的工作目錄切換到該資料夾
 os.chdir(target_path)
@@ -28,7 +29,9 @@ print("【系統提示】目前的執行路徑已成功設定為：", os.getcwd(
 
 import polars as pl
 import tkinter as tk
+# pip install pandastable
 from pandastable import Table
+
 
 df = pl.scan_parquet("bureau_a2_merge.parquet")
 #print(df.head(5).collect())
@@ -52,10 +55,73 @@ pt.show()
 root.mainloop()
 
 #endregion
+#%%
+#region[rgba(46,204,113,0.15)]
+
+### 檢查類別變數
+df = pl.scan_parquet("bureau_a2_merge.parquet")
+COLUMN = "擔保品估價類型（存續中合約）。"
+
+result = (
+    df
+    .group_by(COLUMN)
+    .agg(pl.len().alias("count"))
+    .collect()
+)
+
+result = (
+    result
+    .with_columns(
+        (pl.col("count") / pl.col("count").sum() * 100)
+        .round(2)
+        .alias("percentage")
+    )
+    .sort("count", descending=True)
+)
+
+print(result)
+
+#endregion
+#%%
+#region[rgba(155,89,182,0.15)]
+
+### 檢查連續變數
+
+df = pl.scan_parquet("bureau_a2_merge.parquet")
+COLUMN = "依聯徵中心，已終止合約該筆繳款的逾期天數（num_group1－已終止合約，num_group2－繳款）。"
+
+result = (
+    df
+    .select([
+        pl.len().alias("total_rows"),
+        (pl.col(COLUMN) < 0).sum().alias("negative_count")
+    ])
+    .collect()
+)
+
+result = result.with_columns(
+    (
+    df
+    .select([
+        pl.col(COLUMN).min().alias("min"),
+        pl.col(COLUMN).quantile(0.25).alias("p25"),
+        pl.col(COLUMN).quantile(0.5).alias("med"),
+        pl.col(COLUMN).quantile(0.75).alias("p75"),
+        pl.col(COLUMN).quantile(0.99).alias("p99"),
+        pl.col(COLUMN).max().alias("max")
+
+    ])
+    .collect()
+    )
+)
+
+print(result)
+
+#endregion
 # %%
 #region[rgba(52,152,219,0.15)]
 
-
+######### 檢查聚合後是否正確
 
 # 1. 關鍵設定：將最大顯示欄位與列數設為 None (代表不限制)
 pl.Config.set_tbl_cols(-1)  # 顯示所有欄位（或設為 None / -1）

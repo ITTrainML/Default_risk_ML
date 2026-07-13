@@ -50,3 +50,6 @@ min, max,n_unique,duration,recentdpd_null_count 缺失筆數dpd_null_rate 缺失
 
 mode,n_unique,entropydpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
 
+
+檢查：
+完成聚合後，列出幾筆(3-5個case_id，展示聚合後是正確無誤的)
