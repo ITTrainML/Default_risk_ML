@@ -127,10 +127,17 @@ print(result)
 codex = pl.scan_parquet("bureau_a2_aggregated.parquet")
 df = pl.scan_parquet("bureau_a2_merge.parquet")
 
-DPD_COL = "已結清授信合約中主體角色的名稱（num_group1－已終止合約，num_group2－主體角色）。"
+DPD_COL = "存續合約該筆繳款的逾期天數（num_group1－現有合約，num_group2－繳款）。"
 
-case_id_value = 181554
-num_group1_value = 0
+
+case_id_value = 1265705
+num_group1_value = 1
+## 逾期天數離群值4877 的ID是 1265705 group1 = 1
+## 離群值確認未列入計算 ##
+## (181554, 0)
+## (1504404, 0)
+## (1820940, 1)
+
 
 raw_detail = (
     df
@@ -180,7 +187,21 @@ root.mainloop()
 # %%
 #region[rgba(52,152,219,0.15)]
 
+### a2 merge a1
 
+a2 = pl.scan_parquet("bureau_a2_aggregated.parquet")
+a1 = pl.scan_parquet("bureau_a1_merge.parquet")
+
+# 2. 這是防當機的關鍵！確保右表的連接鍵是唯一的
+a2_clean = a2.unique(subset=["case_id", "num_group1"])
+
+joined_lazy = a1.join(
+    a2, 
+    on=["case_id", "num_group1"], 
+    how="left"
+)
+
+joined_lazy.sink_parquet("bureau_a1a2_merge.parquet")
 
 #endregion
 # %%
