@@ -1,0 +1,52 @@
+bureau_a2_merge 清洗與聚合規則
+
+資料清洗規則：
+
+1.欄位"依聯徵中心，已終止合約該筆繳款的逾期天數（num_group1－已終止合約，num_group2－繳款）。"-> 刪除負值
+
+2.欄位"已結清授信合約的繳款年份（num_group1－已終止合約，num_group2－繳款）。"-> 刪除2025年至2028年
+
+3.連續型特徵刪除前1%數值
+
+
+
+聚合規則：
+
+利用 (case_id,num_group1,num_group2) 做排序
+active_dpd_recent：按 active_year × 12 + active_month 取最新。
+closed_dpd_recent：按 closed_year × 12 + closed_month 取最新。
+若年月相同，再以各自的 num_group2 排序；因方向為遞增，所以取較大的 num_group2。
+年月无效或缺失的紀錄不參與 recent 選取。
+
+連續型特徵：
+
+以DPD系列(逾期天數)舉例 ，分為存續合約(Active) 與 已終止合約(Closed)分開建立
+
+第一類：Basic Statistics（基本統計）
+
+dpd_mean 平均逾期天數dpd_max 最嚴重逾期天數dpd_std 波動程度dpd_last 最近一期逾期dpd_median 逾期天數中位數dpd_mode 最常見逾期天數dpd_n_unique 出現幾種 DPD
+
+第二類：Overdue Behavior
+
+dpd_positive_count 發生逾期數量dpd_overdue_rate 逾期期數比例dpd_mean_positive 發生逾期時平均逾期天數dpd_sum_positive 總逾期天數
+
+第三類：Temporal Features
+
+dpd_recent3_mean 最近三期平均dpd_recent6_mean 最近六期平均dpd_recent12_mean 最近十二期平均dpd_trend 是否越來越嚴重
+
+第四類：Persistence
+
+dpd_consecutive_max 最長連續逾期dpd_current_streak 目前連續逾期幾期dpd_longest_good_streak 最長正常付款
+
+第五類：Missing Information
+
+dpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
+
+日期格式特徵：
+
+min, max,n_unique,duration,recentdpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
+
+類別欄位特徵：
+
+mode,n_unique,entropydpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
+
