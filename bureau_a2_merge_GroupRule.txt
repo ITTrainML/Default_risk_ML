@@ -13,6 +13,7 @@ bureau_a2_merge 清洗與聚合規則
 聚合規則：
 
 利用 (case_id,num_group1,num_group2) 做排序
+聚合KEY 為 (case_id,num_group1)
 active_dpd_recent：按 active_year × 12 + active_month 取最新。
 closed_dpd_recent：按 closed_year × 12 + closed_month 取最新。
 若年月相同，再以各自的 num_group2 排序；因方向為遞增，所以取較大的 num_group2。

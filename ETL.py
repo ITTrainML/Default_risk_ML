@@ -33,7 +33,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("bureau_a2_merge.parquet")
+df = pl.scan_parquet("bureau_a2_aggregated.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -118,76 +118,22 @@ result = result.with_columns(
 print(result)
 
 #endregion
-# %%
-#region[rgba(52,152,219,0.15)]
+
+#%%
+#region[rgba(230,126,34,0.15)]
 
 ######### 檢查聚合後是否正確
 
-# 1. 關鍵設定：將最大顯示欄位與列數設為 None (代表不限制)
-pl.Config.set_tbl_cols(-1)  # 顯示所有欄位（或設為 None / -1）
-pl.Config.set_tbl_rows(-1)  # 顯示所有列（或設為 None / -1）
+codex = pl.scan_parquet("bureau_a2_aggregated.parquet")
+df = pl.scan_parquet("bureau_a2_merge.parquet")
 
-# 2. 如果你的欄位非常多、或是欄位內的文字很長，也可以加上這兩個：
-pl.Config.set_fmt_str_lengths(100) # 每個字串欄位最多顯示幾個字（預設通常會被切斷）
-pl.Config.set_tbl_width_chars(2000) # 終端機整行的字元寬度限制（設大一點避免換行錯位）
+DPD_COL = "已結清授信合約中主體角色的名稱（num_group1－已終止合約，num_group2－主體角色）。"
 
-
-### 1. 檢查聚合後 key 是否唯一
-
-# is_unique = (
-#     df
-#     .group_by(["case_id", "num_group1"])
-#     .agg(pl.len().alias("count"))
-#     .select(
-#         (
-#             pl.col("count") == 1
-#         ).all().alias("is_unique")
-#     )
-#     .collect()
-# )
-
-# print(is_unique)
-
-### 2. 檢查聚合後筆數是否等於 raw 的 group 數
-
-# bureau_a2_raw = pl.scan_parquet("bureau_a2_merge.parquet")
-
-# check_rows = pl.DataFrame({
-#     "source": ["raw_group_count", "agg_row_count"],
-#     "rows": [
-#         bureau_a2_raw.select(
-#             pl.struct(["case_id", "num_group1"]).n_unique()
-#         ).collect().item(),
-#         df.select(pl.len()).collect().item()
-#     ]
-# })
-
-# print(check_rows)
-
-
-### 3. 隨機抽幾組 key，手動重算對照
-
-sample_keys = (
-    df
-    .filter(
-        pl.col("active_dpd_mean_all") != pl.col("active_dpd_mean_positive")
-    )
-    .select(["case_id", "num_group1"])
-    .limit(100000)
-    .collect()
-    .sample(n=10, seed=50)
-)
-
-print(sample_keys)
-
-case_id_value = sample_keys["case_id"][1]
-num_group1_value = sample_keys["num_group1"][1]
-
-
-DPD_COL = "存續合約該筆繳款的逾期天數（num_group1－現有合約，num_group2－繳款）。"
+case_id_value = 181554
+num_group1_value = 0
 
 raw_detail = (
-    bureau_a2_raw
+    df
     .filter(
         (pl.col("case_id") == case_id_value) &
         (pl.col("num_group1") == num_group1_value)
@@ -204,7 +150,7 @@ raw_detail = (
 
 
 codex_check = (
-    df
+    codex
     .filter(
         (pl.col("case_id") == case_id_value) &
         (pl.col("num_group1") == num_group1_value)
@@ -229,6 +175,12 @@ pt.show()
 
 # 4. 讓視窗持續顯示
 root.mainloop()
+
+#endregion
+# %%
+#region[rgba(52,152,219,0.15)]
+
+
 
 #endregion
 # %%
