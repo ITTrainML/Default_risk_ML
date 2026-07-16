@@ -47,9 +47,9 @@ con.sql("""
 """)
 
 con.sql("""
-    CREATE OR REPLACE VIEW train_base AS
+    CREATE OR REPLACE VIEW train_applprev_1_agg AS
     SELECT *
-    FROM 'data/train_base.parquet'
+    FROM 'data/train_applprev_1_agg.parquet'
 """)
 
 
