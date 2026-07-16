@@ -26,7 +26,7 @@ print("【系統提示】目前的執行路徑已成功設定為：", os.getcwd(
 import polars as pl
 import pandas as pd
 
-df = pl.scan_parquet("train_credit_bureau_a_2_0.parquet")
+df = pl.scan_parquet("train_static_cb_0.parquet")
 columns_list = df.columns
 
 columns_list = pd.DataFrame(columns_list)
@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("bureau_a0.parquet")
+df = pl.scan_parquet("train_static_cb_0.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -198,21 +198,81 @@ root.mainloop()
 # %%
 #region[rgba(52,152,219,0.15)]
 
-### a2 merge a1
+###### 第0層Merge
 
-a2 = pl.scan_parquet("bureau_a2_aggregated.parquet")
-a1 = pl.scan_parquet("bureau_a1_merge.parquet")
+import duckdb
+con = duckdb.connect()
 
-# 2. 這是防當機的關鍵！確保右表的連接鍵是唯一的
-a2_clean = a2.unique(subset=["case_id", "num_group1"])
+## bureau_a0 合到 base 生成 base1
 
-joined_lazy = a1.join(
-    a2, 
-    on=["case_id", "num_group1"], 
-    how="left"
-)
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'train_base.parquet' as a1
+#         left join
+#         'bureau_a0_english.parquet' as a2
+#         USING(case_id)
+#         )to 'base1.parquet' (FORMAT PARQUET)
 
-joined_lazy.sink_parquet("bureau_a1a2_merge.parquet")
+# """)
+
+## train_static_0 合到 base1 生成 base2
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base1.parquet' as a1
+#         left join
+#         'train_static_0_high_importance.parquet' as a2
+#         USING(case_id)
+#         )to 'base2.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_static_cb_0 合到 base2 生成 base3
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base2.parquet' as a1
+#         left join
+#         'train_static_cb_0_high_importance.parquet' as a2
+#         USING(case_id)
+#         )to 'base3.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_other 合到 base3 生成 base4
+
+# 先處理train_other
+
+con.sql("""
+        COPY(
+        select *
+        from
+        (Select case_id , amtdepositbalance_4809441A
+         from 'train_other_1.parquet') as t2
+        right join 
+        'base3.parquet' as t1
+        USING(case_id) )to 'base4.parquet' (FORMAT PARQUET)
+
+ """)
+
+
+
+
+
+
+
+con.sql("""
+SELECT COUNT(*)
+FROM (
+    DESCRIBE
+    SELECT *
+    FROM 'base4.parquet'
+);
+""")
+
 
 #endregion
 # %%
