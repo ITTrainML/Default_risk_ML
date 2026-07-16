@@ -21,6 +21,17 @@ print("【系統提示】目前的執行路徑已成功設定為：", os.getcwd(
 # df = duckdb.query("SELECT * FROM 'your_file.csv' LIMIT 5").df()
 
 #endregion
+#%%
+## 輸出欄位名稱
+import polars as pl
+import pandas as pd
+
+df = pl.scan_parquet("train_credit_bureau_a_2_0.parquet")
+columns_list = df.columns
+
+columns_list = pd.DataFrame(columns_list)
+columns_list.to_csv("QQ.csv", index=False, encoding="utf-8-sig")
+columns_list
 
 #%%
 #region[rgba(241,196,60,0.15)]
@@ -33,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("bureau_a2_aggregated.parquet")
+df = pl.scan_parquet("bureau_a0.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
