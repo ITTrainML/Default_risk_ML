@@ -488,3 +488,200 @@ agg.sink_parquet("train_debitcard_agg.parquet")
 
 #endregion
 # %%
+#region[rgba(46,204,113,0.15)]
+
+import polars as pl
+
+base = pl.scan_parquet("base9.parquet")
+
+## 先確認Target 分布比例
+# target_summary = (
+#     base
+#     .group_by("target")
+#     .len()
+#     .sort("target")
+#     .collect()
+# )
+
+# print(target_summary)
+
+
+## 開始抽樣
+
+N_DEFAULT = 40_000
+N_NON_DEFAULT = 40_000
+N_ROUNDS = 30
+BASE_SEED = 20260717
+
+sampling_base = (
+    base
+    .select(["case_id", "target"])
+    .collect()
+)
+
+#建立違約與非違約 ID 母體
+default_ids = (
+    sampling_base
+    .filter(pl.col("target") == 1)
+    .select("case_id")
+)
+
+non_default_ids = (
+    sampling_base
+    .filter(pl.col("target") == 0)
+    .select("case_id")
+)
+
+
+#把所有非違約者打亂
+
+non_default_ids_shuffled = non_default_ids.sample(
+    fraction=1.0,
+    with_replacement=False,
+    shuffle=True,
+    seed=BASE_SEED,
+)
+
+#函數先產生本輪的 80,000 個 case_id，
+#再回到原始 LazyFrame 取完整資料。
+
+def get_sample_round_lazy(
+    round_idx: int,
+    base_lf: pl.LazyFrame,
+    default_ids: pl.DataFrame,
+    non_default_ids_shuffled: pl.DataFrame,
+    n_default: int = 40_000,
+    n_non_default: int = 40_000,
+    base_seed: int = 20260717,
+) -> pl.DataFrame:
+    """
+    從 LazyFrame base 中建立單輪完整樣本。
+
+    round_idx 從 0 開始。
+
+    違約者：
+    - 每輪內不重複
+    - 不同輪之間可以重複
+
+    非違約者：
+    - 30輪之間完全不重複
+    """
+
+    if round_idx < 0:
+        raise ValueError("round_idx 不得小於 0。")
+
+    if default_ids.height < n_default:
+        raise ValueError("違約樣本數不足。")
+
+    non_default_start = round_idx * n_non_default
+    non_default_end = non_default_start + n_non_default
+
+    if non_default_end > non_default_ids_shuffled.height:
+        raise ValueError(
+            f"第 {round_idx + 1} 輪超出非違約母體範圍。"
+        )
+
+    # 每輪重新抽違約者
+    default_sample_ids = default_ids.sample(
+        n=n_default,
+        with_replacement=False,
+        shuffle=True,
+        seed=base_seed + round_idx,
+    )
+
+    # 非違約者從已打亂的母體切不同區段
+    non_default_sample_ids = non_default_ids_shuffled.slice(
+        offset=non_default_start,
+        length=n_non_default,
+    )
+
+    # 合併本輪80,000個case_id
+    round_ids = pl.concat(
+        [
+            default_sample_ids,
+            non_default_sample_ids,
+        ],
+        how="vertical",
+    )
+
+    # 加上順序欄位，方便最後重新隨機排列
+    round_ids = (
+        round_ids
+        .sample(
+            fraction=1.0,
+            with_replacement=False,
+            shuffle=True,
+            seed=base_seed + 10_000 + round_idx,
+        )
+        .with_row_index("sample_order")
+    )
+
+    # 用case_id回到原始LazyFrame抓完整特徵
+    sample_df = (
+        base_lf
+        .join(
+            round_ids.lazy(),
+            on="case_id",
+            how="inner",
+        )
+        .sort("sample_order")
+        .drop("sample_order")
+        .collect()
+    )
+
+    return sample_df
+
+
+sample_01 = get_sample_round_lazy(
+    round_idx=0,
+    base_lf=base,
+    default_ids=default_ids,
+    non_default_ids_shuffled=non_default_ids_shuffled,
+    n_default=N_DEFAULT,
+    n_non_default=N_NON_DEFAULT,
+    base_seed=BASE_SEED,
+)
+
+
+sample_01.group_by("target").len().sort("target")
+
+
+
+
+
+
+
+
+### 跑30次迴圈
+
+# for round_idx in range(N_ROUNDS):
+
+#     sample_df = get_sample_round_lazy(
+#         round_idx=round_idx,
+#         base_lf=base,
+#         default_ids=default_ids,
+#         non_default_ids_shuffled=non_default_ids_shuffled,
+#         n_default=N_DEFAULT,
+#         n_non_default=N_NON_DEFAULT,
+#         base_seed=BASE_SEED,
+#     )
+
+#     validate_sample(
+#         sample_df,
+#         n_default=N_DEFAULT,
+#         n_non_default=N_NON_DEFAULT,
+#     )
+
+#     print(
+#         f"開始第 {round_idx + 1:02d} 輪特徵篩選"
+#     )
+
+#     # 此時sample_df才是完整80,000人 × 約1,000欄的DataFrame
+#     X = sample_df.drop(["case_id", "target"])
+#     y = sample_df["target"]
+
+#     # 在此跑模型
+
+
+#endregion
+# %%
