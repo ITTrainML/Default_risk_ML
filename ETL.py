@@ -26,7 +26,7 @@ print("【系統提示】目前的執行路徑已成功設定為：", os.getcwd(
 import polars as pl
 import pandas as pd
 
-df = pl.scan_parquet("train_static_cb_0.parquet")
+df = pl.scan_parquet("base9.parquet")
 columns_list = df.columns
 
 columns_list = pd.DataFrame(columns_list)
@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("train_static_cb_0.parquet")
+df = pl.scan_parquet("base8.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -54,7 +54,7 @@ root.title("資料完整預覽視窗")
 root.geometry("1000x600")
 
 # 2. 取出資料
-preview_df = df.head(100).collect().to_pandas()
+preview_df = df.head(1000).collect().to_pandas()
 
 # 3. 渲染表格
 frame = tk.Frame(root)
@@ -244,22 +244,84 @@ con = duckdb.connect()
 
 ## train_other 合到 base3 生成 base4
 
-# 先處理train_other
+# 順便處理train_other，僅保留一個欄位後再合併
+
+# con.sql("""
+#         COPY(
+#         select *
+#         from
+#         (Select case_id , amtdepositbalance_4809441A
+#          from 'train_other_1.parquet') as t2
+#         right join 
+#         'base3.parquet' as t1
+#         USING(case_id) )to 'base4.parquet' (FORMAT PARQUET)
+
+#  """)
+
+## train_debitcard_agg 合到 base4 生成 base5
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base4.parquet' as a1
+#         left join
+#         'train_debitcard_agg.parquet' as a2
+#         USING(case_id)
+#         )to 'base5.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_tax_registry_a_agg 合到 base5 生成 base6
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base5.parquet' as a1
+#         left join
+#         'train_tax_registry_a_agg.parquet' as a2
+#         USING(case_id)
+#         )to 'base6.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_tax_registry_b_agg 合到 base6 生成 base7
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base6.parquet' as a1
+#         left join
+#         'train_tax_registry_b_agg.parquet' as a2
+#         USING(case_id)
+#         )to 'base7.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_tax_registry_c_agg 合到 base7 生成 base8
+
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base7.parquet' as a1
+#         left join
+#         'train_tax_registry_c_agg.parquet' as a2
+#         USING(case_id)
+#         )to 'base8.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_applprev_agg 合到 base8 生成 base9
 
 con.sql("""
-        COPY(
-        select *
-        from
-        (Select case_id , amtdepositbalance_4809441A
-         from 'train_other_1.parquet') as t2
-        right join 
-        'base3.parquet' as t1
-        USING(case_id) )to 'base4.parquet' (FORMAT PARQUET)
+COPY(
+        Select *
+        from 'base8.parquet' as a1
+        left join
+        'train_applprev_agg.parquet' as a2
+        USING(case_id)
+        )to 'base9.parquet' (FORMAT PARQUET)
 
- """)
-
-
-
+""")
 
 
 
@@ -269,10 +331,160 @@ SELECT COUNT(*)
 FROM (
     DESCRIBE
     SELECT *
-    FROM 'base4.parquet'
+    FROM 'base9.parquet'
 );
 """)
 
+
+#endregion
+# %%
+#region[rgba(231,76,60,0.15)]
+
+## 處理深度1的表
+
+# 定義一個封裝 Polars 表達式的函數
+
+import polars as pl
+
+
+def aggregate_numeric_features(
+    lf: pl.LazyFrame,
+    group_keys: str,
+    cols: list[str],
+    group1_col: str | None = "num_group1"
+) -> pl.LazyFrame:
+    """
+    通用數值聚合
+
+    Parameters
+    ----------
+    lf : LazyFrame
+    group_keys : 分群key，例如
+        ["case_id"]
+        ["case_id","num_group1"]
+    cols : 要聚合的欄位
+
+    Returns
+    -------
+    LazyFrame
+    """
+
+    exprs: list[pl.Expr] = []
+
+    # num_group1 僅計算紀錄／合約數量
+    if group1_col is not None:
+        exprs.append(
+            pl.col(group1_col)
+            .n_unique()
+            .alias("debitcard_1_count")
+        )
+
+    for c in cols:
+
+        exprs.extend([
+
+            # ---------------------
+            # 基本統計
+            # ---------------------
+
+            pl.col(c).mean().alias(f"{c}_mean"),
+
+            pl.col(c).max().alias(f"{c}_max"),
+
+            pl.col(c).median().alias(f"{c}_median"),
+
+            # ---------------------
+            # Positive
+            # ---------------------
+
+            (pl.col(c) > 0)
+                .sum()
+                .alias(f"{c}_positive_count"),
+
+            (
+                (pl.col(c) > 0)
+                .sum()
+                /
+                pl.col(c).is_not_null().sum()
+            ).alias(f"{c}_overdue_rate"),
+
+            (
+                pl.when(pl.col(c) > 0)
+                .then(pl.col(c))
+                .otherwise(0)
+                .sum()
+            ).alias(f"{c}_sum_positive"),
+
+            (
+                pl.when(pl.col(c) > 0)
+                .then(pl.col(c))
+                .otherwise(None)
+                .mean()
+            ).alias(f"{c}_mean_positive"),
+
+            # ---------------------
+            # Stability
+            # ---------------------
+
+            pl.col(c).std().alias(f"{c}_std"),
+
+            (
+                pl.col(c).quantile(0.75)
+                -
+                pl.col(c).quantile(0.25)
+            ).alias(f"{c}_iqr"),
+
+            # ---------------------
+            # Missing
+            # ---------------------
+
+            pl.col(c)
+                .is_null()
+                .sum()
+                .alias(f"{c}_null_count"),
+
+            pl.col(c)
+                .is_null()
+                .mean()
+                .alias(f"{c}_null_rate"),
+
+            pl.col(c)
+                .is_not_null()
+                .sum()
+                .alias(f"{c}_non_null_count"),
+          
+        ])
+
+    return (
+        lf
+        .group_by(group_keys)
+        .agg(exprs)
+    )
+
+### 讀取檔案並刪除指定欄位後 套用函式
+
+lf = pl.scan_parquet("train_debitcard_1.parquet")
+ # 刪除欄位
+lf = lf.drop([
+    "openingdate_857D",
+
+])
+
+
+data_cols = [
+    "last180dayaveragebalance_704A",
+    "last180dayturnover_1134A",
+    "last30dayturnover_651A"
+]
+
+agg = aggregate_numeric_features(
+    lf,
+    group_keys=["case_id"],
+    cols=data_cols,
+    group1_col="num_group1"
+)
+
+agg.sink_parquet("train_debitcard_agg.parquet")
 
 #endregion
 # %%
