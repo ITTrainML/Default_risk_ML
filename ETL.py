@@ -44,9 +44,12 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("base8.parquet")
+df = pl.scan_parquet("base_final2.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
+
+df1 = df.collect()
+print(df1.shape)
 
 # 1. 建立 Tkinter 視窗
 root = tk.Tk()
@@ -312,16 +315,30 @@ con = duckdb.connect()
 
 ## train_applprev_agg 合到 base8 生成 base9
 
+# con.sql("""
+# COPY(
+#         Select *
+#         from 'base8.parquet' as a1
+#         left join
+#         'train_applprev_agg.parquet' as a2
+#         USING(case_id)
+#         )to 'base9.parquet' (FORMAT PARQUET)
+
+# """)
+
+## train_credit_bureau_b1b2_case_aggregated 合到 base9 生成 base10
+
 con.sql("""
 COPY(
         Select *
-        from 'base8.parquet' as a1
+        from 'base9.parquet' as a1
         left join
-        'train_applprev_agg.parquet' as a2
+        'train_credit_bureau_b1b2_case_aggregated.parquet' as a2
         USING(case_id)
-        )to 'base9.parquet' (FORMAT PARQUET)
+        )to 'base10.parquet' (FORMAT PARQUET)
 
 """)
+
 
 
 
@@ -331,7 +348,7 @@ SELECT COUNT(*)
 FROM (
     DESCRIBE
     SELECT *
-    FROM 'base9.parquet'
+    FROM 'base10.parquet'
 );
 """)
 
@@ -488,199 +505,467 @@ agg.sink_parquet("train_debitcard_agg.parquet")
 
 #endregion
 # %%
-#region[rgba(46,204,113,0.15)]
+#region[rgba(241,196,60,0.15)]
 
 import polars as pl
 
-base = pl.scan_parquet("base9.parquet")
+lf = pl.scan_parquet("base_final.parquet")
 
-## 先確認Target 分布比例
-# target_summary = (
-#     base
-#     .group_by("target")
-#     .len()
-#     .sort("target")
-#     .collect()
-# )
+selected_features = [
+"pmts_dpd_303P_std__mean",
+"avgdpdtolclosure24_3658938P",
+"maxdbddpdtollast12m_3658940P",
+"pctinstlsallpaidlate1d_3546856L",
+"reject_rate",
+"dpdmax_139P__mean",
+"dpdmax_757P__mean",
+"dpdmax_757P__std",
+"numberofoverdueinstlmax_1039L__mean",
+"numberofoverdueinstlmax_1151L__mean",
+"overdueamountmax_155A__mean",
+"pmts_dpd_1073P_std__mean",
+"pmts_overdue_1140A_mean__mean",
+"pmts_dpd_1073P_trend__max",
+"pmts_dpd_1073P_longest_good_streak__max",
+"pmts_dpd_303P_longest_good_streak__max",
+"pctinstlsallpaidearl3d_427L",
+"maxdpdtolerance_577P_mean",
+"rejectreasonclient_4145042M_non_placeholder_ratio",
+"pmts_overdue_1140A_std__mean",
+"lastrejectreason_759M",
+"dpdmax_139P__sum",
+"numberofoverdueinstlmax_1039L__max",
+"numberofoverdueinstlmax_1039L__sum",
+"numberofoverdueinstlmax_1151L__std",
+"pmts_dpd_1073P_overdue_rate__weighted_avg",
+"pmts_dpd_1073P_non_null_count__max",
+"pmts_dpd_303P_mean__mean",
+"pmts_dpd_303P_overdue_rate__weighted_avg",
+"pmts_overdue_1140A_overdue_rate__weighted_avg",
+"pmts_overdue_1140A_sum_positive__sum",
+"pmts_overdue_1152A_overdue_rate__weighted_avg",
+"pmts_dpd_1073P_trend__mean",
+"pmts_dpd_303P_trend__mean",
+"avgdbddpdlast24m_3658932P",
+"cntpmts24_3658933L",
+"credamount_770A",
+"disbursedcredamount_1113A",
+"maxdpdlast12m_727P",
+"maxdpdlast24m_143P",
+"maxdpdlast9m_1059P",
+"monthsannuity_845L",
+"numrejects9m_859L",
+"price_1097A",
+"education_1103M",
+"pmtaverage_3A",
+"pmtssum_45A",
+"requesttype_4525192L",
+"tenure_years_max",
+"age_years_appl",
+"tenure_years_appl",
+"education_927M_appl",
+"incometype_1044T_appl",
+"registaddr_district_1083M_appl",
+"date_decision",
+"dpdmax_757P__max",
+"dpdmax_757P__sum",
+"numberofoutstandinstls_59L__min",
+"numberofoutstandinstls_59L__sum",
+"numberofoverdueinstlmax_1151L__max",
+"numberofoverdueinstlmax_1151L__sum",
+"overdueamountmax2_14A__mean",
+"overdueamountmax2_14A__max",
+"overdueamountmax_155A__max",
+"overdueamountmax_155A__sum",
+"overdueamountmax_35A__mean",
+"overdueamountmax_35A__std",
+"pmts_dpd_1073P_std__max",
+"pmts_dpd_303P_mean_positive__recomputed",
+"pmts_overdue_1140A_std__max",
+"pmts_dpd_1073P_consecutive_max__max",
+"pmts_dpd_303P_recent3_mean__mean",
+"pmts_dpd_303P_recent6_mean__mean",
+"pmts_dpd_303P_recent6_mean__max",
+"pmts_dpd_303P_recent12_mean__mean",
+"interestrate_311L",
+"maxdbddpdlast1m_3658939P",
+"maxdebt4_972A",
+"maxdpdtolerance_374P",
+"numinstlswithdpd10_728L",
+"numinstlswithdpd5_4187116L",
+"pctinstlsallpaidlate4d_3546849L",
+"totaldebt_9A",
+"totalsettled_863A",
+"n_rejected",
+"numberofoverdueinstlmax_1039L__min",
+"prolongationcount_599L__null_rate",
+"residualamount_856A__mean",
+"residualamount_856A__max",
+"residualamount_856A__min",
+"residualamount_856A__sum",
+"totalamount_6A__sum",
+"totalamount_996A__mean",
+"pmts_dpd_303P_non_null_count__sum",
+"pmts_overdue_1140A_sum_positive__max",
+"collater_valueofguarantee_1124L_null_count__max",
+"pmts_dpd_303P_recent_time_key__mean_fallback",
+"currdebt_22A",
+"disbursementtype_67L",
+"eir_270L",
+"maxdbddpdtollast6m_4187119P",
+"maxdpdlast3m_392P",
+"maxdpdlast6m_474P",
+"numinstlswithoutdpd_562L",
+"numinsttopaygr_769L",
+"numinstunpaidmax_3546851L",
+"numinstunpaidmaxest_4493212L",
+"pctinstlsallpaidlat10d_839L",
+"days120_123L",
+"days180_256L",
+"days30_165L",
+"days360_512L",
+"days90_310L",
+"tax_registry_a_count",
+"amount_4527230A_sum_positive",
+"tax_registry_c_count",
+"pmtamount_36A_positive_count",
+"pmtamount_36A_sum_positive",
+"cancelreason_3545846M_mode",
+"education_1138M_mode",
+"rejectreason_755M_non_placeholder_ratio",
+"contaddr_district_15M_appl",
+"familystate_447L_appl",
+"relationshiptoclient_415T_mode",
+"relationshiptoclient_642T_mode",
+"dpdmax_139P__max",
+"dpdmax_757P__null_rate",
+"monthlyinstlamount_674A__mean",
+"outstandingamount_362A__max",
+"overdueamountmax2_14A__sum",
+"overdueamountmax2_398A__mean",
+"overdueamountmax2_398A__max",
+"overdueamountmax2_398A__std",
+"overdueamountmax_155A__std",
+"prolongationcount_599L__sum",
+"totalamount_6A__null_rate",
+"totalamount_996A__max",
+"totaloutstanddebtvalue_39A__sum",
+"pmts_dpd_1073P_mean__mean",
+"pmts_dpd_1073P_mean__max",
+"pmts_dpd_1073P_max__max",
+"pmts_dpd_1073P_n_unique__max",
+"pmts_dpd_1073P_positive_count__sum",
+"pmts_dpd_1073P_positive_count__max",
+"pmts_dpd_1073P_mean_positive__max",
+"pmts_dpd_1073P_sum_positive__sum",
+"pmts_dpd_1073P_sum_positive__max",
+"pmts_dpd_1073P_non_null_count__sum",
+"pmts_dpd_303P_mean__max",
+"pmts_dpd_303P_max__max",
+"maxannuity_4075009A",
+"pmtamount_36A_non_null_count",
+"empl_industry_691L_appl",
+"amount_4527230A_positive_count",
+"numberofqueries_373L",
+"credtype_322L",
+"last_status",
+"riskassesment_940T",
+"b2_pmts_dpdvalue_108P_overdue_rate_recomputed",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_recomputed",
+"b2_pmts_dpdvalue_108P_overdue_rate_contract_max",
+"b2_pmts_pmtsoverdue_635A_mean_weighted",
+"b2_pmts_pmtsoverdue_635A_mean_contract_mean",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_contract_max",
+"b2_pmts_dpdvalue_108P_mean_weighted",
+"b2_pmts_pmtsoverdue_635A_mean_contract_max",
+"b2_pmts_dpdvalue_108P_mean_contract_mean",
+"pmts_dpd_303P_n_unique__sum",
+"pmts_overdue_1140A_non_null_count__sum",
+"pmts_year_1139T_pmts_month_158T_duration__mean",
+"pmts_overdue_1140A_n_unique__sum",
+"pmts_dpd_1073P_recent_time_key__mean_fallback",
+"pmts_dpd_303P_recent_time_key__max_fallback",
+"opencred_647L",
+"subjectroles_name_838M_n_unique__sum",
+"subjectroles_name_838M_entropy__mean",
+"pmts_overdue_1140A_non_null_count__max",
+"pmts_overdue_1152A_mean__mean",
+"pmts_overdue_1152A_std__mean",
+"pmts_dpd_303P_std__max",
+"pmts_overdue_1140A_mean__max",
+"pmts_dpd_1073P_recent12_mean__mean",
+"pmts_dpd_303P_recent12_mean__max",
+"pmts_dpd_1073P_recent12_mean__max",
+"pmts_overdue_1152A_median__mean",
+"pctinstlsallpaidlate6d_3546844L",
+"pmts_dpd_303P_median__mean",
+"registaddr_zipcode_184M_appl",
+"lastrejectdate_50D",
+"maxdpdinstldate_3546855D",
+"lastdelinqdate_224D",
+"datelastunpaid_3546854D",
+"pmts_year_507T_pmts_month_706T_min__min",
+"pmts_year_1139T_pmts_month_158T_min__min",
+"prolongationcount_599L__mean",
+]
 
-# print(target_summary)
+keep_columns = ["case_id", *selected_features, "target"]
+
+lf_selected = lf.select(keep_columns)
+
+lf_selected.sink_parquet("base_final2.parquet")
+
+#endregion
+# %%
+#region[rgba(52,152,219,0.15)]
+
+### 做相關係數
 
 
-## 開始抽樣
+from itertools import combinations
 
-N_DEFAULT = 40_000
-N_NON_DEFAULT = 40_000
-N_ROUNDS = 30
-BASE_SEED = 20260717
-
-sampling_base = (
-    base
-    .select(["case_id", "target"])
-    .collect()
-)
-
-#建立違約與非違約 ID 母體
-default_ids = (
-    sampling_base
-    .filter(pl.col("target") == 1)
-    .select("case_id")
-)
-
-non_default_ids = (
-    sampling_base
-    .filter(pl.col("target") == 0)
-    .select("case_id")
-)
+import polars as pl
 
 
-#把所有非違約者打亂
-
-non_default_ids_shuffled = non_default_ids.sample(
-    fraction=1.0,
-    with_replacement=False,
-    shuffle=True,
-    seed=BASE_SEED,
-)
-
-#函數先產生本輪的 80,000 個 case_id，
-#再回到原始 LazyFrame 取完整資料。
-
-def get_sample_round_lazy(
-    round_idx: int,
-    base_lf: pl.LazyFrame,
-    default_ids: pl.DataFrame,
-    non_default_ids_shuffled: pl.DataFrame,
-    n_default: int = 40_000,
-    n_non_default: int = 40_000,
-    base_seed: int = 20260717,
+def pairwise_correlations_lazy(
+    lf: pl.LazyFrame,
+    feature_columns: list[str],
+    method: str = "pearson",
+    batch_size: int = 500,
 ) -> pl.DataFrame:
     """
-    從 LazyFrame base 中建立單輪完整樣本。
+    使用Polars LazyFrame計算所有不重複的兩兩相關係數。
 
-    round_idx 從 0 開始。
+    Parameters
+    ----------
+    lf:
+        Polars LazyFrame。
+    feature_columns:
+        要計算相關係數的數值特徵名稱。
+    method:
+        "pearson" 或 "spearman"。
+    batch_size:
+        每批計算的特徵組合數，避免一次建立過大的查詢。
 
-    違約者：
-    - 每輪內不重複
-    - 不同輪之間可以重複
-
-    非違約者：
-    - 30輪之間完全不重複
+    Returns
+    -------
+    pl.DataFrame
+        欄位包含：
+        - feature_1
+        - feature_2
+        - correlation
+        - abs_correlation
     """
 
-    if round_idx < 0:
-        raise ValueError("round_idx 不得小於 0。")
+    if method not in {"pearson", "spearman"}:
+        raise ValueError("method必須是 'pearson' 或 'spearman'")
 
-    if default_ids.height < n_default:
-        raise ValueError("違約樣本數不足。")
+    # 去除重複欄位，但維持原順序
+    feature_columns = list(dict.fromkeys(feature_columns))
 
-    non_default_start = round_idx * n_non_default
-    non_default_end = non_default_start + n_non_default
+    # 檢查指定欄位是否存在
+    available_columns = set(lf.collect_schema().names())
 
-    if non_default_end > non_default_ids_shuffled.height:
+    missing_columns = [
+        column
+        for column in feature_columns
+        if column not in available_columns
+    ]
+
+    if missing_columns:
         raise ValueError(
-            f"第 {round_idx + 1} 輪超出非違約母體範圍。"
+            f"以下 {len(missing_columns)} 個欄位不存在：\n"
+            + "\n".join(missing_columns)
         )
 
-    # 每輪重新抽違約者
-    default_sample_ids = default_ids.sample(
-        n=n_default,
-        with_replacement=False,
-        shuffle=True,
-        seed=base_seed + round_idx,
-    )
+    # 產生不重複的兩兩組合
+    feature_pairs = list(combinations(feature_columns, 2))
 
-    # 非違約者從已打亂的母體切不同區段
-    non_default_sample_ids = non_default_ids_shuffled.slice(
-        offset=non_default_start,
-        length=n_non_default,
-    )
+    print(f"特徵數：{len(feature_columns):,}")
+    print(f"兩兩組合數：{len(feature_pairs):,}")
 
-    # 合併本輪80,000個case_id
-    round_ids = pl.concat(
-        [
-            default_sample_ids,
-            non_default_sample_ids,
-        ],
-        how="vertical",
-    )
+    result_frames = []
 
-    # 加上順序欄位，方便最後重新隨機排列
-    round_ids = (
-        round_ids
-        .sample(
-            fraction=1.0,
-            with_replacement=False,
-            shuffle=True,
-            seed=base_seed + 10_000 + round_idx,
+    # 分批執行
+    for start in range(0, len(feature_pairs), batch_size):
+        batch_pairs = feature_pairs[start:start + batch_size]
+
+        correlation_expressions = [
+            pl.corr(
+                pl.col(feature_1),
+                pl.col(feature_2),
+                method=method,
+            ).alias(f"corr_{index}")
+            for index, (feature_1, feature_2) in enumerate(batch_pairs)
+        ]
+
+        # 此處仍是LazyFrame；直到collect才真正執行
+        batch_result = (
+            lf.select(feature_columns)
+            .select(correlation_expressions)
+            .collect()
         )
-        .with_row_index("sample_order")
-    )
 
-    # 用case_id回到原始LazyFrame抓完整特徵
-    sample_df = (
-        base_lf
-        .join(
-            round_ids.lazy(),
-            on="case_id",
-            how="inner",
+        # select聚合後只有一列，每欄代表一組相關係數
+        correlation_values = batch_result.row(0)
+
+        batch_long = pl.DataFrame(
+            {
+                "feature_1": [
+                    pair[0] for pair in batch_pairs
+                ],
+                "feature_2": [
+                    pair[1] for pair in batch_pairs
+                ],
+                "correlation": correlation_values,
+            }
+        ).with_columns(
+            pl.col("correlation")
+            .abs()
+            .alias("abs_correlation")
         )
-        .sort("sample_order")
-        .drop("sample_order")
-        .collect()
+
+        result_frames.append(batch_long)
+
+        print(
+            f"已完成："
+            f"{min(start + batch_size, len(feature_pairs)):,}"
+            f" / {len(feature_pairs):,}"
+        )
+
+    return pl.concat(result_frames)
+
+
+
+lf = pl.scan_parquet("base_final2.parquet")
+
+# corr_pairs = pairwise_correlations_lazy(
+#     lf=lf,
+#     feature_columns=selected_features,
+#     method="pearson",
+#     batch_size=500,
+# )
+
+corr_pairs.write_csv(
+    "correlation_pairs.csv"
+)
+#endregion
+# %%
+#region[rgba(155,89,182,0.15)]
+
+### 刪除高相關係數後，做共線性
+
+import polars as pl
+
+lf = pl.scan_parquet("base_final2.parquet")
+
+lf1 = lf.drop(["pmts_dpd_1073P_std__max",
+"pmts_dpd_1073P_mean__mean",
+"pmts_dpd_1073P_max__max",
+"pmts_dpd_1073P_recent12_mean__mean",
+"pmts_dpd_1073P_recent12_mean__max",
+"pmts_dpd_1073P_sum_positive__max",
+"pmts_dpd_1073P_n_unique__max",
+"pmts_dpd_1073P_positive_count__sum",
+"pmts_dpd_1073P_positive_count__max",
+"numberofoverdueinstlmax_1151L__std",
+"pmts_dpd_303P_mean__max",
+"pmts_dpd_303P_recent12_mean__max",
+"dpdmax_757P__max",
+"numberofoverdueinstlmax_1151L__max",
+"pmts_dpd_303P_recent6_mean__max",
+"pmts_dpd_303P_max__max",
+"pmts_dpd_303P_recent12_mean__mean",
+"numberofoverdueinstlmax_1151L__mean",
+"dpdmax_757P__mean",
+"pmts_dpd_303P_recent6_mean__mean",
+"pmts_dpd_303P_recent3_mean__mean",
+"pmts_dpd_303P_median__mean",
+"dpdmax_139P__max",
+"numberofoverdueinstlmax_1039L__mean",
+"numberofoverdueinstlmax_1039L__sum",
+"tax_registry_a_count",
+"pmtamount_36A_positive_count",
+"tax_registry_c_count",
+"pmtamount_36A_non_null_count",
+"overdueamountmax_155A__max",
+"overdueamountmax2_14A__sum",
+"totalamount_996A__max",
+"totaloutstanddebtvalue_39A__sum",
+"residualamount_856A__mean",
+"residualamount_856A__sum",
+"pmtamount_36A_sum_positive",
+"pmtssum_45A",
+"b2_pmts_pmtsoverdue_635A_mean_contract_mean",
+"days120_123L",
+"maxdbddpdtollast6m_4187119P",
+"maxdbddpdlast1m_3658939P",
+"numinstunpaidmax_3546851L",
+"numinsttopaygr_769L",
+"overdueamountmax2_398A__std",
+"overdueamountmax2_398A__max",
+"pctinstlsallpaidlate6d_3546844L",
+"pctinstlsallpaidlat10d_839L",
+"pmts_overdue_1140A_sum_positive__max",
+"avgdbddpdlast24m_3658932P",
+"b2_pmts_dpdvalue_108P_mean_contract_mean",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_contract_max",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_recomputed",
+"credamount_770A",
+"currdebt_22A",
+"numberofqueries_373L",
+"totalamount_6A__null_rate",
+"numberofoverdueinstlmax_1151L__sum",
+"eir_270L",
+"maxdpdlast9m_1059P",
+"monthsannuity_845L",
+"overdueamountmax2_14A__mean",
+"overdueamountmax2_398A__mean",
+"pmts_dpd_1073P_non_null_count__max",
+"pmts_overdue_1140A_non_null_count__sum",
+"pmts_dpd_1073P_overdue_rate__weighted_avg",
+"pmts_overdue_1152A_overdue_rate__weighted_avg",
+"pmts_overdue_1152A_median__mean",
+"rejectreason_755M_non_placeholder_ratio",
+"case_id",
+"target",
+])
+
+
+
+
+import polars.selectors as cs
+
+# 選擇所有數值欄位
+lf2 = lf1.select(cs.numeric())
+
+
+# 抽樣10%
+
+vif_features = lf2.select(cs.all())
+
+lf_sample = (
+    lf2
+    # 暫時建立資料列索引
+    .with_row_index("_row_id")
+
+    # 將列索引雜湊後分成10組，只取其中1組
+    .filter(
+        (
+            pl.col("_row_id").hash(seed=42) % 10
+        ) == 0
     )
 
-    return sample_df
-
-
-sample_01 = get_sample_round_lazy(
-    round_idx=0,
-    base_lf=base,
-    default_ids=default_ids,
-    non_default_ids_shuffled=non_default_ids_shuffled,
-    n_default=N_DEFAULT,
-    n_non_default=N_NON_DEFAULT,
-    base_seed=BASE_SEED,
+    # 移除暫時建立的索引
+    .drop("_row_id")
 )
 
+df_sample_pl = lf_sample.collect()
 
-sample_01.group_by("target").len().sort("target")
+df_sample_pd = df_sample_pl.to_pandas()
 
-
-
-
-
-
-
-
-### 跑30次迴圈
-
-# for round_idx in range(N_ROUNDS):
-
-#     sample_df = get_sample_round_lazy(
-#         round_idx=round_idx,
-#         base_lf=base,
-#         default_ids=default_ids,
-#         non_default_ids_shuffled=non_default_ids_shuffled,
-#         n_default=N_DEFAULT,
-#         n_non_default=N_NON_DEFAULT,
-#         base_seed=BASE_SEED,
-#     )
-
-#     validate_sample(
-#         sample_df,
-#         n_default=N_DEFAULT,
-#         n_non_default=N_NON_DEFAULT,
-#     )
-
-#     print(
-#         f"開始第 {round_idx + 1:02d} 輪特徵篩選"
-#     )
-
-#     # 此時sample_df才是完整80,000人 × 約1,000欄的DataFrame
-#     X = sample_df.drop(["case_id", "target"])
-#     y = sample_df["target"]
-
-#     # 在此跑模型
+print(type(df_sample_pd))
+print(df_sample_pd.shape)
 
 
 #endregion

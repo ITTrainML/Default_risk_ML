@@ -7,7 +7,7 @@
 import os
 
 # 1. 定義你的目標資料夾路徑（前方加上 r 可以避免 Windows 反斜線引發的轉義字元錯誤）
-target_path = r"C:\Users\ittraining\Desktop\git\Default_risk_ML\data"
+target_path = r"D:\git\Default_risk_ML\data"
 
 # 2. 強制將 Python 的工作目錄切換到該資料夾
 os.chdir(target_path)
@@ -136,7 +136,7 @@ import duckdb
 import pandas as pd
 
 
-PARQUET_PATH = r"train_tax_registry_c_1.parquet"
+PARQUET_PATH = r"base_final.parquet"
 OUTPUT_CSV = "missing_report.csv"
 
 con = duckdb.connect()
@@ -177,7 +177,7 @@ for col in schema_df["column_name"]:
 
 missing_df = pd.DataFrame(results)
 
-missing_df["column_name"] = missing_df["column_name"].map(safe_rename_mapping).fillna(missing_df["column_name"])
+#missing_df["column_name"] = missing_df["column_name"].map(safe_rename_mapping).fillna(missing_df["column_name"])
 
 missing_df.to_csv(OUTPUT_CSV, index=False, encoding="utf-8-sig")
 
