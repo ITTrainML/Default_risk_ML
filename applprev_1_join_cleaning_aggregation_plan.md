@@ -57,12 +57,12 @@
 
 | 欄位 | 補值方式 | 理由 |
 |---|---|---|
-| actualdpd_943P | 補 0 | 缺失率僅 0.04%;DPD 缺失 = 無逾期紀錄,語意上等同 0 |
-| maxdpdtolerance_577P | 補 0 | 缺失集中於 D/T(被拒/取消,無合約即無逾期),結構性缺失補 0 |
-| currdebt_94A | 補 0 | 同上:D 狀態 70.6%、T 狀態 81.8% 缺失,K/A 為 0% — 無合約即無債務 |
-| outstandingdebt_522A | 補 0 | 同上(D 70.6%、T 84.4% 缺失) |
-| credacc_credlmt_575A | 補 0 | 無信用卡帳戶即無額度,補 0 符合語意 |
-| mainoccupationinc_437A | **不於列層級補值** | 收入不可能為 0,缺失率僅 1.6%;聚合統計(mean/max)天然忽略 null,補中位數反而在 case 內注入假值 |
+| actualdpd_943P | **列層級補 0** | 缺失率僅 0.04%;DPD 缺失 = 無逾期紀錄,語意上等同 0;缺失極少,列層級補 0 無失真 |
+| maxdpdtolerance_577P | **列層級不補 → 聚合後補 0** | 缺失集中於 D/T(被拒/取消,無合約即無逾期);若列層級補 0,D/T 的 0 會稀釋 mean(實測全表 mean 14.66→7.71),且稀釋幅度與拒絕次數共線 = 把拒絕頻率污染進嚴重度指標(拒絕率已由 reject_rate 專職)。改為列層級不補、聚合 mean/max 天然跳過 null(= 有合約時的嚴重度),僅對「全無合約」的 case(聚合結果 NULL)於 case 層級補 0 |
+| currdebt_94A | **列層級不補 → 聚合後補 0** | D 70.6%、T 81.8% 缺失,K/A 為 0% 屬結構性;**last 若列層級補 0 會掩蓋真實負債**(實測 130,633 個 case 最近一筆為 NULL 但更早申請仍有 currdebt>0)。改為列層級不補,last 用 drop_nulls().last()(見步驟 4),sum/max/mean 聚合天然跳過 null,再對全無合約的 case 補 0 |
+| outstandingdebt_522A | **列層級不補 → 聚合後補 0** | 同 currdebt(D 70.6%、T 84.4% 缺失);last 用 drop_nulls().last(),聚合後對全無合約 case 補 0 |
+| credacc_credlmt_575A | **列層級不補 → 聚合後補 0** | 無信用卡帳戶即無額度屬結構性;last 用 drop_nulls().last() 取最近一筆有帳戶的額度,聚合後對全無帳戶 case 補 0 |
+| mainoccupationinc_437A | **不補值**(列層級與聚合後皆不補) | 收入不可能為 0,缺失率僅 1.6%;聚合統計(mean/max)天然忽略 null,補 0 或中位數都會注入假值 |
 | byoccupationinc_3656910L | **不補值** + 聚合時輸出缺失率特徵 | 缺失 76.5%,任何單值補法都會扭曲分布;缺失本身可能有訊號(如未申報),以 `null_ratio` 保留 |
 | employedfrom_700D / tenure_years | **不補值** | 日期無合理填補值;聚合統計忽略 null,另輸出缺失率 |
 | revolvingaccount_394A | 轉二元 `has_revolving = is_not_null()`,null→0 | 使用者決議:值為帳戶編號,數值統計無意義;「是否曾有循環帳戶」才是訊號 |
@@ -78,10 +78,10 @@
 | 欄位 | 指標 | 理由 |
 |---|---|---|
 | actualdpd_943P | `max`、`mean`、`sum(>0)` 次數(逾期次數) | max 抓最嚴重逾期(風險上界);mean 抓慣性;逾期「次數」比金額分布更穩健(此欄 99% 為 0,計數特徵最有效) |
-| maxdpdtolerance_577P | `max`、`mean` | 同為 DPD 類,max 為歷史最差表現 |
-| currdebt_94A | `sum`、`max`、`last` | sum = 跨先前申請的總現有債務(總負債水位);last = 最近一筆的債務現況 |
-| outstandingdebt_522A | `sum`、`max`、`last` | 同上,未償債務總額直接對應償債壓力 |
-| credacc_credlmt_575A | `max`、`last` | 額度反映授信評價,取歷史最高與最近值;sum 無意義(額度非流量) |
+| maxdpdtolerance_577P | `max`、`mean`(於有合約列上計算) | 同為 DPD 類,max 為歷史最差表現;mean 因列層級不補 0,語意為「有合約時的平均容忍逾期」,不受被拒/取消件數稀釋。聚合後對全無合約 case 補 0 |
+| currdebt_94A | `sum`、`max`、**`drop_nulls().last()`** | sum = 跨先前申請的總現有債務(總負債水位);last = 最近**一筆有合約**的債務現況(用 drop_nulls().last() 避免最近一筆為被拒/取消的 NULL 被補 0 掩蓋真實負債)。聚合後對全無合約 case 補 0 |
+| outstandingdebt_522A | `sum`、`max`、**`drop_nulls().last()`** | 同上,未償債務總額直接對應償債壓力 |
+| credacc_credlmt_575A | `max`、**`drop_nulls().last()`** | 額度反映授信評價,取歷史最高與最近一筆有帳戶的額度;sum 無意義(額度非流量)。聚合後對全無帳戶 case 補 0 |
 | mainoccupationinc_437A | `last`、`max`、`mean` | **last 最重要**(最近申報收入最接近現況,需排序);max/mean 抓收入水準與波動 |
 | byoccupationinc_3656910L | `last`、`mean`、`null_ratio` | 同上;缺失率 76.5%,null_ratio 本身作為特徵 |
 
@@ -101,6 +101,31 @@
 | profession_152M | 僅 `n_unique` + `'a55475b1'` 比例 | 11,508 類且 98.9% 為佔位值,mode 幾乎恆為佔位值,無鑑別力;職業「變動次數」與「有無申報」較有訊號 |
 | cancelreason_3545846M | `mode`、`n_unique`、非佔位值比例 | 取消原因分布反映申請行為模式 |
 | rejectreason_755M / rejectreasonclient_4145042M | 同上 | 拒絕原因與 status=D 高度相關,佐證拒絕率特徵 |
+
+### num_group1:count 計數特徵(使用者指定需求)
+
+**特徵**:`n_prev_apps = count(num_group1)`——聚合後取「筆數總數」,即該客戶的**先前申請總次數**。
+
+**取總數(count)是好特徵嗎?是,理由如下**:
+
+1. **申請強度 = 經典信用風險訊號**:頻繁申貸(credit hunger)與資金壓力高度相關,是違約的
+   已知行為指標;反之從未有先前申請的 thin-file 客戶風險輪廓也完全不同。count 能同時
+   區分這兩端。
+2. **是比率特徵的必要配套**:`reject_rate`、`cancel_rate` 都是比率,「1 次申請被拒 1 次
+   (100%)」與「10 次被拒 10 次(100%)」風險意義完全不同——count 提供分母規模,讓模型
+   能學到比率×次數的交互作用。
+3. **資料品質佳**:`num_group1` 缺失率 0%,已驗證所有 1,221,522 個 case 內皆為連續的
+   0..n-1,count 無歧義。
+4. **注意事項**:count 混合了「歷史長度」與「申請密度」兩種語意(老客戶自然累積較多筆);
+   若後續要純化訊號,可再除以觀察期間衍生「年均申請次數」,但粗篩階段 count 已足夠。
+
+**為何不用 sum**(已實測否決):`num_group1` 為 0..n-1 的列索引,sum = n(n−1)/2,
+是 count 的**確定性單調函數**(全部 case 驗證 sum 恆等於該公式),對樹模型與 count
+完全等價、對線性模型只是 count 的二次變換——不含任何新資訊,反而放大量綱。故本表
+的次序索引欄**只做 count,不做 sum**。
+
+**實作註記**:此特徵與既有 `n_prev_apps = count(*)` 等價(num_group1 無缺失),
+實作上以 `pl.len()` 計一次即可,勿重複產出兩個相同欄位。
 
 ### status_219L 與拒絕率特徵(使用者指定需求)
 

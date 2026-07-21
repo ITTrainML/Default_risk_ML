@@ -71,13 +71,25 @@ A_SUFFIX_COLS = [
     "revolvingaccount_394A",
 ]
 
-# 聚合後補 0 的欄位(結構性缺失:無合約/無帳戶即無此金額)
-FILL_ZERO_COLS = [
-    "actualdpd_943P",
-    "maxdpdtolerance_577P",
-    "currdebt_94A",
-    "outstandingdebt_522A",
-    "credacc_credlmt_575A",
+# 列層級補 0:僅 actualdpd_943P(缺失 0.04%,null 語意即「無逾期」=0,無失真)
+ROW_FILL_ZERO_COLS = ["actualdpd_943P"]
+
+# 聚合後(case 層級)補 0 的輸出欄。結構性缺失(無合約/無帳戶)集中於被拒(D)/取消(T)。
+# 若於「列層級」補 0:會用 D/T 的 0 稀釋 mean(實測 maxdpd mean 14.66→7.71,且與拒絕
+# 次數共線),並讓 last 掩蓋更早申請的真實負債(實測 130,633 個 case 最近一筆為 NULL
+# 但更早仍有 currdebt>0)。故改為:列層級不補 → 聚合統計天然跳過 null(mean=有合約時
+# 的平均、last 用 drop_nulls().last())→ 僅對「全無合約」的 case(聚合結果 NULL)補 0。
+POST_AGG_FILL_ZERO_COLS = [
+    "maxdpdtolerance_577P_max",
+    "maxdpdtolerance_577P_mean",
+    "currdebt_94A_sum",
+    "currdebt_94A_max",
+    "currdebt_94A_last",
+    "outstandingdebt_522A_sum",
+    "outstandingdebt_522A_max",
+    "outstandingdebt_522A_last",
+    "credacc_credlmt_575A_max",
+    "credacc_credlmt_575A_last",
 ]
 
 # 5 個離散型 M 類別欄
@@ -163,8 +175,8 @@ def main():
         ]
     )
 
-    # 缺失值處理:結構性缺失補 0
-    df = df.with_columns([pl.col(c).fill_null(0.0) for c in FILL_ZERO_COLS])
+    # 缺失值處理:僅 actualdpd 於列層級補 0(其餘結構性缺失延後到 case 層級聚合後)
+    df = df.with_columns([pl.col(c).fill_null(0.0) for c in ROW_FILL_ZERO_COLS])
 
     # a2 的 null_count 欄補 0(各僅 1 列 NULL)
     df = df.with_columns([pl.col(c).fill_null(0) for c in A2_NULLCOUNT_COLS])
@@ -192,17 +204,17 @@ def main():
         # maxdpdtolerance_577P
         pl.col("maxdpdtolerance_577P").max().alias("maxdpdtolerance_577P_max"),
         pl.col("maxdpdtolerance_577P").mean().alias("maxdpdtolerance_577P_mean"),
-        # currdebt_94A
+        # currdebt_94A(last 用 drop_nulls 取最近一筆有合約的債務,避免被拒/取消的 NULL)
         pl.col("currdebt_94A").sum().alias("currdebt_94A_sum"),
         pl.col("currdebt_94A").max().alias("currdebt_94A_max"),
-        pl.col("currdebt_94A").last().alias("currdebt_94A_last"),
+        pl.col("currdebt_94A").drop_nulls().last().alias("currdebt_94A_last"),
         # outstandingdebt_522A
         pl.col("outstandingdebt_522A").sum().alias("outstandingdebt_522A_sum"),
         pl.col("outstandingdebt_522A").max().alias("outstandingdebt_522A_max"),
-        pl.col("outstandingdebt_522A").last().alias("outstandingdebt_522A_last"),
+        pl.col("outstandingdebt_522A").drop_nulls().last().alias("outstandingdebt_522A_last"),
         # credacc_credlmt_575A
         pl.col("credacc_credlmt_575A").max().alias("credacc_credlmt_575A_max"),
-        pl.col("credacc_credlmt_575A").last().alias("credacc_credlmt_575A_last"),
+        pl.col("credacc_credlmt_575A").drop_nulls().last().alias("credacc_credlmt_575A_last"),
         # mainoccupationinc_437A
         pl.col("mainoccupationinc_437A").last().alias("mainoccupationinc_437A_last"),
         pl.col("mainoccupationinc_437A").max().alias("mainoccupationinc_437A_max"),
@@ -287,6 +299,12 @@ def main():
     # 及其偏好穩定度;L 欄無佔位值 -> placeholder=False
     mode_of_modes = build_cat_agg(df, "conts_type_509L_mode", KEYS, placeholder=False)
     result = result.join(mode_of_modes, on=KEYS, how="left")
+
+    # 結構性缺失:全無合約/無帳戶的 case 其聚合結果為 NULL -> 於 case 層級補 0
+    # (有合約的 case 之 mean/last 已於非空值上算出,非 NULL,不受此步影響)
+    result = result.with_columns(
+        [pl.col(c).fill_null(0) for c in POST_AGG_FILL_ZERO_COLS]
+    )
 
     result = result.sort(KEYS)
     result.write_parquet(OUT)

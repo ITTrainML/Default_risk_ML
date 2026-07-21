@@ -41,15 +41,38 @@ con.sql("""
 """)
 
 con.sql("""
+    CREATE OR REPLACE VIEW train_person_agg AS
+    SELECT *
+    FROM 'data/train_person_agg.parquet'
+""")
+
+con.sql("""
+    CREATE OR REPLACE VIEW train_person_agg_LIL AS
+    SELECT *
+    FROM 'data/train_person_agg_LIL.parquet'
+""")
+
+
+
+con.sql("""
     CREATE OR REPLACE VIEW train_base AS
     SELECT *
     FROM 'data/train_base.parquet'
 """)
 
+# con.sql("""
+#     CREATE OR REPLACE VIEW train_applprev1 AS
+#     SELECT *
+#     FROM 'data/train_applprev1_0.parquet'
+#     Union
+#     SELECT *
+#     FROM 'data/train_applprev1_0.parquet'
+# """)
+
 con.sql("""
     CREATE OR REPLACE VIEW train_applprev_1_agg AS
     SELECT *
-    FROM 'data/train_applprev_1_agg.parquet'
+    FROM 'data/train_applprev_agg.parquet'
 """)
 
 
