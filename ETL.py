@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("base_final2.parquet")
+df = pl.scan_parquet("base_final3.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -839,12 +839,12 @@ def pairwise_correlations_lazy(
 
 lf = pl.scan_parquet("base_final2.parquet")
 
-# corr_pairs = pairwise_correlations_lazy(
-#     lf=lf,
-#     feature_columns=selected_features,
-#     method="pearson",
-#     batch_size=500,
-# )
+corr_pairs = pairwise_correlations_lazy(
+    lf=lf,
+    feature_columns=selected_features,
+    method="pearson",
+    batch_size=500,
+)
 
 corr_pairs.write_csv(
     "correlation_pairs.csv"
@@ -853,120 +853,595 @@ corr_pairs.write_csv(
 # %%
 #region[rgba(155,89,182,0.15)]
 
-### 刪除高相關係數後，做共線性
+### 刪除高相關係數後，做共線性 ### 缺失值要補才能做
+
+# import polars as pl
+
+# lf = pl.scan_parquet("base_final2.parquet")
+
+# lf1 = lf.drop(["pmts_dpd_1073P_std__max",
+# "pmts_dpd_1073P_mean__mean",
+# "pmts_dpd_1073P_max__max",
+# "pmts_dpd_1073P_recent12_mean__mean",
+# "pmts_dpd_1073P_recent12_mean__max",
+# "pmts_dpd_1073P_sum_positive__max",
+# "pmts_dpd_1073P_n_unique__max",
+# "pmts_dpd_1073P_positive_count__sum",
+# "pmts_dpd_1073P_positive_count__max",
+# "numberofoverdueinstlmax_1151L__std",
+# "pmts_dpd_303P_mean__max",
+# "pmts_dpd_303P_recent12_mean__max",
+# "dpdmax_757P__max",
+# "numberofoverdueinstlmax_1151L__max",
+# "pmts_dpd_303P_recent6_mean__max",
+# "pmts_dpd_303P_max__max",
+# "pmts_dpd_303P_recent12_mean__mean",
+# "numberofoverdueinstlmax_1151L__mean",
+# "dpdmax_757P__mean",
+# "pmts_dpd_303P_recent6_mean__mean",
+# "pmts_dpd_303P_recent3_mean__mean",
+# "pmts_dpd_303P_median__mean",
+# "dpdmax_139P__max",
+# "numberofoverdueinstlmax_1039L__mean",
+# "numberofoverdueinstlmax_1039L__sum",
+# "tax_registry_a_count",
+# "pmtamount_36A_positive_count",
+# "tax_registry_c_count",
+# "pmtamount_36A_non_null_count",
+# "overdueamountmax_155A__max",
+# "overdueamountmax2_14A__sum",
+# "totalamount_996A__max",
+# "totaloutstanddebtvalue_39A__sum",
+# "residualamount_856A__mean",
+# "residualamount_856A__sum",
+# "pmtamount_36A_sum_positive",
+# "pmtssum_45A",
+# "b2_pmts_pmtsoverdue_635A_mean_contract_mean",
+# "days120_123L",
+# "maxdbddpdtollast6m_4187119P",
+# "maxdbddpdlast1m_3658939P",
+# "numinstunpaidmax_3546851L",
+# "numinsttopaygr_769L",
+# "overdueamountmax2_398A__std",
+# "overdueamountmax2_398A__max",
+# "pctinstlsallpaidlate6d_3546844L",
+# "pctinstlsallpaidlat10d_839L",
+# "pmts_overdue_1140A_sum_positive__max",
+# "avgdbddpdlast24m_3658932P",
+# "b2_pmts_dpdvalue_108P_mean_contract_mean",
+# "b2_pmts_pmtsoverdue_635A_overdue_rate_contract_max",
+# "b2_pmts_pmtsoverdue_635A_overdue_rate_recomputed",
+# "credamount_770A",
+# "currdebt_22A",
+# "numberofqueries_373L",
+# "totalamount_6A__null_rate",
+# "numberofoverdueinstlmax_1151L__sum",
+# "eir_270L",
+# "maxdpdlast9m_1059P",
+# "monthsannuity_845L",
+# "overdueamountmax2_14A__mean",
+# "overdueamountmax2_398A__mean",
+# "pmts_dpd_1073P_non_null_count__max",
+# "pmts_overdue_1140A_non_null_count__sum",
+# "pmts_dpd_1073P_overdue_rate__weighted_avg",
+# "pmts_overdue_1152A_overdue_rate__weighted_avg",
+# "pmts_overdue_1152A_median__mean",
+# "rejectreason_755M_non_placeholder_ratio",
+# "case_id",
+# "target",
+# ])
+
+
+
+
+# import polars.selectors as cs
+
+# # 選擇所有數值欄位
+# lf2 = lf1.select(cs.numeric())
+
+
+# # 抽樣10%
+
+# vif_features = lf2.select(cs.all())
+
+# lf_sample = (
+#     lf2
+#     # 暫時建立資料列索引
+#     .with_row_index("_row_id")
+
+#     # 將列索引雜湊後分成10組，只取其中1組
+#     .filter(
+#         (
+#             pl.col("_row_id").hash(seed=42) % 10
+#         ) == 0
+#     )
+
+#     # 移除暫時建立的索引
+#     .drop("_row_id")
+# )
+
+# df_sample_pl = lf_sample.collect()
+
+# df_sample_pd = df_sample_pl.to_pandas()
+
+# print(type(df_sample_pd))
+# print(df_sample_pd.shape)
+
+
+### 做共線性 (未填補缺失值，所以這邊不能做，但可以用WOE去做)
+
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+
+import pandas as pd
+
+
+def calculate_vif(df):
+    return pd.DataFrame({
+        "Feature": df.columns,
+        "VIF": [
+            variance_inflation_factor(
+                df.values,
+                i
+            )
+            for i in range(df.shape[1])
+        ]
+    }).sort_values(
+        "VIF",
+        ascending=False
+    )
+
+vif = calculate_vif(df_sample_pd)
+
+#endregion
+# %%
 
 import polars as pl
 
 lf = pl.scan_parquet("base_final2.parquet")
-
-lf1 = lf.drop(["pmts_dpd_1073P_std__max",
+lf1 = lf.drop(["pmts_dpd_303P_std__mean",
+"dpdmax_139P__mean",
+"dpdmax_757P__mean",
+"dpdmax_757P__std",
+"numberofoverdueinstlmax_1039L__mean",
+"numberofoverdueinstlmax_1151L__mean",
+"overdueamountmax_155A__mean",
+"pmts_dpd_1073P_std__mean",
+"pmts_overdue_1140A_mean__mean",
+"pmts_dpd_1073P_longest_good_streak__max",
+"pmts_overdue_1140A_std__mean",
+"dpdmax_139P__sum",
+"numberofoverdueinstlmax_1039L__max",
+"numberofoverdueinstlmax_1039L__sum",
+"numberofoverdueinstlmax_1151L__std",
+"pmts_dpd_1073P_overdue_rate__weighted_avg",
+"pmts_dpd_1073P_non_null_count__max",
+"pmts_dpd_303P_mean__mean",
+"pmts_dpd_303P_overdue_rate__weighted_avg",
+"pmts_overdue_1140A_sum_positive__sum",
+"pmts_overdue_1152A_overdue_rate__weighted_avg",
+"avgdbddpdlast24m_3658932P",
+"credamount_770A",
+"maxdpdlast9m_1059P",
+"monthsannuity_845L",
+"pmtssum_45A",
+"registaddr_district_1083M_appl",
+"date_decision",
+"dpdmax_757P__max",
+"dpdmax_757P__sum",
+"numberofoverdueinstlmax_1151L__max",
+"numberofoverdueinstlmax_1151L__sum",
+"overdueamountmax2_14A__mean",
+"overdueamountmax2_14A__max",
+"overdueamountmax_155A__max",
+"overdueamountmax_155A__sum",
+"pmts_dpd_1073P_std__max",
+"pmts_overdue_1140A_std__max",
+"pmts_dpd_1073P_consecutive_max__max",
+"pmts_dpd_303P_recent3_mean__mean",
+"pmts_dpd_303P_recent6_mean__mean",
+"pmts_dpd_303P_recent6_mean__max",
+"pmts_dpd_303P_recent12_mean__mean",
+"maxdbddpdlast1m_3658939P",
+"pctinstlsallpaidlate4d_3546849L",
+"totaldebt_9A",
+"n_rejected",
+"residualamount_856A__mean",
+"residualamount_856A__max",
+"residualamount_856A__sum",
+"pmts_overdue_1140A_sum_positive__max",
+"currdebt_22A",
+"eir_270L",
+"maxdbddpdtollast6m_4187119P",
+"maxdpdlast6m_474P",
+"numinsttopaygr_769L",
+"numinstunpaidmax_3546851L",
+"pctinstlsallpaidlat10d_839L",
+"days120_123L",
+"tax_registry_a_count",
+"tax_registry_c_count",
+"pmtamount_36A_positive_count",
+"pmtamount_36A_sum_positive",
+"rejectreason_755M_non_placeholder_ratio",
+"contaddr_district_15M_appl",
+"relationshiptoclient_415T_mode",
+"relationshiptoclient_642T_mode",
+"dpdmax_139P__max",
+"overdueamountmax2_14A__sum",
+"overdueamountmax2_398A__mean",
+"overdueamountmax2_398A__max",
+"overdueamountmax2_398A__std",
+"prolongationcount_599L__sum",
+"totalamount_6A__null_rate",
+"totalamount_996A__max",
+"totaloutstanddebtvalue_39A__sum",
 "pmts_dpd_1073P_mean__mean",
+"pmts_dpd_1073P_mean__max",
 "pmts_dpd_1073P_max__max",
-"pmts_dpd_1073P_recent12_mean__mean",
-"pmts_dpd_1073P_recent12_mean__max",
-"pmts_dpd_1073P_sum_positive__max",
 "pmts_dpd_1073P_n_unique__max",
 "pmts_dpd_1073P_positive_count__sum",
 "pmts_dpd_1073P_positive_count__max",
-"numberofoverdueinstlmax_1151L__std",
+"pmts_dpd_1073P_mean_positive__max",
+"pmts_dpd_1073P_sum_positive__sum",
+"pmts_dpd_1073P_sum_positive__max",
+"pmts_dpd_1073P_non_null_count__sum",
 "pmts_dpd_303P_mean__max",
-"pmts_dpd_303P_recent12_mean__max",
-"dpdmax_757P__max",
-"numberofoverdueinstlmax_1151L__max",
-"pmts_dpd_303P_recent6_mean__max",
 "pmts_dpd_303P_max__max",
-"pmts_dpd_303P_recent12_mean__mean",
-"numberofoverdueinstlmax_1151L__mean",
-"dpdmax_757P__mean",
-"pmts_dpd_303P_recent6_mean__mean",
-"pmts_dpd_303P_recent3_mean__mean",
-"pmts_dpd_303P_median__mean",
-"dpdmax_139P__max",
-"numberofoverdueinstlmax_1039L__mean",
-"numberofoverdueinstlmax_1039L__sum",
-"tax_registry_a_count",
-"pmtamount_36A_positive_count",
-"tax_registry_c_count",
 "pmtamount_36A_non_null_count",
-"overdueamountmax_155A__max",
-"overdueamountmax2_14A__sum",
-"totalamount_996A__max",
-"totaloutstanddebtvalue_39A__sum",
-"residualamount_856A__mean",
-"residualamount_856A__sum",
-"pmtamount_36A_sum_positive",
-"pmtssum_45A",
-"b2_pmts_pmtsoverdue_635A_mean_contract_mean",
-"days120_123L",
-"maxdbddpdtollast6m_4187119P",
-"maxdbddpdlast1m_3658939P",
-"numinstunpaidmax_3546851L",
-"numinsttopaygr_769L",
-"overdueamountmax2_398A__std",
-"overdueamountmax2_398A__max",
-"pctinstlsallpaidlate6d_3546844L",
-"pctinstlsallpaidlat10d_839L",
-"pmts_overdue_1140A_sum_positive__max",
-"avgdbddpdlast24m_3658932P",
-"b2_pmts_dpdvalue_108P_mean_contract_mean",
-"b2_pmts_pmtsoverdue_635A_overdue_rate_contract_max",
-"b2_pmts_pmtsoverdue_635A_overdue_rate_recomputed",
-"credamount_770A",
-"currdebt_22A",
 "numberofqueries_373L",
-"totalamount_6A__null_rate",
-"numberofoverdueinstlmax_1151L__sum",
-"eir_270L",
-"maxdpdlast9m_1059P",
-"monthsannuity_845L",
-"overdueamountmax2_14A__mean",
-"overdueamountmax2_398A__mean",
-"pmts_dpd_1073P_non_null_count__max",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_recomputed",
+"b2_pmts_pmtsoverdue_635A_mean_weighted",
+"b2_pmts_pmtsoverdue_635A_mean_contract_mean",
+"b2_pmts_pmtsoverdue_635A_overdue_rate_contract_max",
+"b2_pmts_pmtsoverdue_635A_mean_contract_max",
+"b2_pmts_dpdvalue_108P_mean_contract_mean",
 "pmts_overdue_1140A_non_null_count__sum",
-"pmts_dpd_1073P_overdue_rate__weighted_avg",
-"pmts_overdue_1152A_overdue_rate__weighted_avg",
+"pmts_overdue_1152A_mean__mean",
+"pmts_overdue_1152A_std__mean",
+"pmts_overdue_1140A_mean__max",
+"pmts_dpd_1073P_recent12_mean__mean",
+"pmts_dpd_303P_recent12_mean__max",
+"pmts_dpd_1073P_recent12_mean__max",
 "pmts_overdue_1152A_median__mean",
-"rejectreason_755M_non_placeholder_ratio",
-"case_id",
-"target",
+"pctinstlsallpaidlate6d_3546844L",
+"pmts_dpd_303P_median__mean",
+"datelastunpaid_3546854D",
+"prolongationcount_599L__mean",
 ])
 
+lf1.sink_parquet("base_final3.parquet")
 
 
+# %%
+#region[rgba(230,126,34,0.15)]
 
-import polars.selectors as cs
+import polars as pl
+import lightgbm as lgb
+from lightgbm import LGBMClassifier
 
-# 選擇所有數值欄位
-lf2 = lf1.select(cs.numeric())
+import numpy as np
+import pandas as pd
 
-
-# 抽樣10%
-
-vif_features = lf2.select(cs.all())
-
-lf_sample = (
-    lf2
-    # 暫時建立資料列索引
-    .with_row_index("_row_id")
-
-    # 將列索引雜湊後分成10組，只取其中1組
-    .filter(
-        (
-            pl.col("_row_id").hash(seed=42) % 10
-        ) == 0
-    )
-
-    # 移除暫時建立的索引
-    .drop("_row_id")
+from sklearn.metrics import (
+    roc_auc_score,
+    roc_curve,
+    log_loss,
+    brier_score_loss
 )
 
-df_sample_pl = lf_sample.collect()
+train = pl.scan_parquet("train_base_final.parquet")
+test = pl.scan_parquet("test_base_final.parquet")
 
-df_sample_pd = df_sample_pl.to_pandas()
 
-print(type(df_sample_pd))
-print(df_sample_pd.shape)
 
+x_train = train.drop(["case_id","target","WEEK_NUM"])
+y_train = train.select("target")
+x_test = test.drop(["case_id","target","WEEK_NUM"])
+y_test = test.select("target")
+
+week_train_pd = (
+    train
+    .select("WEEK_NUM")
+    .collect()
+    .to_numpy()
+    .ravel()
+)
+
+week_test_pd = (
+    test
+    .select("WEEK_NUM")
+    .collect()
+    .to_numpy()
+    .ravel()
+)
+
+
+x_train_pd = x_train.collect().to_pandas()
+y_train_pd = y_train.collect().to_numpy().ravel()
+x_test_pd = x_test.collect().to_pandas()
+y_test_pd = y_test.collect().to_numpy().ravel()
+
+
+categorical_cols = list(
+    x_train_pd.select_dtypes(include=["object"]).columns
+)
+
+for col in categorical_cols:
+    x_train_pd[col] = x_train_pd[col].astype("category")
+    x_test_pd[col] = x_test_pd[col].astype("category")
+
+
+# x_train_pd.shape
+# y_train_pd.shape
+
+
+model = LGBMClassifier(
+    objective="binary",
+    boosting_type="gbdt",
+
+    n_estimators=500,
+
+    learning_rate=0.05,
+
+    num_leaves=31,
+
+    random_state=42,
+
+    n_jobs=-1
+)
+
+model.fit(
+    x_train_pd,
+    y_train_pd
+)
+
+train_probability = model.predict_proba(x_train_pd)[:,1]
+test_probability = model.predict_proba(x_test_pd)[:,1]
+
+def evaluate_model(
+    y_true,
+    probability,
+    dataset_name
+):
+
+    auc = roc_auc_score(
+        y_true,
+        probability
+    )
+
+    gini = 2*auc-1
+
+    fpr,tpr,_ = roc_curve(
+        y_true,
+        probability
+    )
+
+    ks = np.max(
+        tpr-fpr
+    )
+
+    ll = log_loss(
+        y_true,
+        probability
+    )
+
+    brier = brier_score_loss(
+        y_true,
+        probability
+    )
+
+    print("="*40)
+    print(dataset_name)
+    print("="*40)
+
+    print(f"AUC         : {auc:.6f}")
+    print(f"Gini        : {gini:.6f}")
+    print(f"KS          : {ks:.6f}")
+    print(f"LogLoss     : {ll:.6f}")
+    print(f"Brier Score : {brier:.6f}")
+
+def evaluate_home_credit_official(
+    y_true,
+    probability,
+    week_num,
+    dataset_name
+):
+    y_true = np.asarray(y_true).ravel()
+    probability = np.asarray(probability).ravel()
+    week_num = np.asarray(week_num).ravel()
+
+    if not (
+        len(y_true)
+        == len(probability)
+        == len(week_num)
+    ):
+        raise ValueError(
+            "y_true、probability、week_num 的資料筆數必須相同。"
+        )
+
+    if np.isnan(probability).any():
+        raise ValueError(
+            "預測機率中存在 NaN。"
+        )
+
+    if (
+        (probability < 0)
+        | (probability > 1)
+    ).any():
+        raise ValueError(
+            "預測機率必須介於 0 和 1 之間。"
+        )
+
+    evaluation_df = pd.DataFrame({
+        "target": y_true,
+        "probability": probability,
+        "WEEK_NUM": week_num
+    })
+
+    weekly_results = []
+
+    for week, week_df in evaluation_df.groupby(
+        "WEEK_NUM",
+        sort=True
+    ):
+        week_target = week_df["target"]
+        week_probability = week_df["probability"]
+
+        if week_target.nunique() < 2:
+            print(
+                f"警告：WEEK_NUM={week} 只有單一 target，"
+                "本週略過，不計算 Gini。"
+            )
+            continue
+
+        week_auc = roc_auc_score(
+            week_target,
+            week_probability
+        )
+
+        week_gini = 2 * week_auc - 1
+
+        weekly_results.append({
+            "WEEK_NUM": week,
+            "sample_size": len(week_df),
+            "bad_count": int(week_target.sum()),
+            "bad_rate": float(
+                week_target.mean()
+            ),
+            "auc": week_auc,
+            "gini": week_gini
+        })
+
+    weekly_df = (
+        pd.DataFrame(weekly_results)
+        .sort_values("WEEK_NUM")
+        .reset_index(drop=True)
+    )
+
+    if len(weekly_df) < 2:
+        raise ValueError(
+            "至少需要兩個有效 WEEK_NUM，"
+            "才能計算官方 Stability Metric。"
+        )
+
+    x = weekly_df[
+        "WEEK_NUM"
+    ].to_numpy(dtype=float)
+
+    y = weekly_df[
+        "gini"
+    ].to_numpy(dtype=float)
+
+    slope, intercept = np.polyfit(
+        x,
+        y,
+        deg=1
+    )
+
+    fitted_gini = (
+        slope * x
+        + intercept
+    )
+
+    residuals = (
+        y
+        - fitted_gini
+    )
+
+    mean_gini = np.mean(y)
+
+    falling_rate = min(
+        0.0,
+        slope
+    )
+
+    falling_penalty = (
+        88.0
+        * falling_rate
+    )
+
+    residual_std = np.std(
+        residuals,
+        ddof=0
+    )
+
+    variability_penalty = (
+        0.5
+        * residual_std
+    )
+
+    stability_metric = (
+        mean_gini
+        + falling_penalty
+        - variability_penalty
+    )
+
+    result_text = f"""
+============================================================
+{dataset_name}－Home Credit Official Metric
+============================================================
+
+有效週數               : {len(weekly_df)}
+Mean Weekly Gini       : {mean_gini:.6f}
+Gini Trend Slope       : {slope:.6f}
+Falling Rate           : {falling_rate:.6f}
+Falling Penalty        : {falling_penalty:.6f}
+Residual STD           : {residual_std:.6f}
+Variability Penalty    : {variability_penalty:.6f}
+
+------------------------------------------------------------
+Official Stability     : {stability_metric:.6f}
+============================================================
+"""
+
+    print(result_text)
+
+    return {
+        "stability_metric": stability_metric,
+        "mean_weekly_gini": mean_gini,
+        "slope": slope,
+        "falling_rate": falling_rate,
+        "falling_penalty": falling_penalty,
+        "residual_std": residual_std,
+        "variability_penalty": variability_penalty,
+        "weekly_results": weekly_df
+    }
+
+
+
+
+evaluate_model(
+    y_train_pd,
+    train_probability,
+    "Train"
+)
+
+evaluate_model(
+    y_test_pd,
+    test_probability,
+    "Test"
+)
+
+train_official_result = evaluate_home_credit_official(
+    y_true=y_train_pd,
+    probability=train_probability,
+    week_num=week_train_pd,
+    dataset_name="Train"
+)
+
+test_official_result = evaluate_home_credit_official(
+    y_true=y_test_pd,
+    probability=test_probability,
+    week_num=week_test_pd,
+    dataset_name="Test"
+)
 
 #endregion
+# %%
+
+print(y_train_pd.shape)
+print(y_train_pd.ndim)
+
+
+
+
 # %%
