@@ -1120,6 +1120,7 @@ from lightgbm import LGBMClassifier
 
 import numpy as np
 import pandas as pd
+from IPython.display import display
 
 from sklearn.metrics import (
     roc_auc_score,
@@ -1375,25 +1376,29 @@ def evaluate_home_credit_official(
         - variability_penalty
     )
 
-    result_text = f"""
-============================================================
-{dataset_name}－Home Credit Official Metric
-============================================================
-
-有效週數               : {len(weekly_df)}
-Mean Weekly Gini       : {mean_gini:.6f}
-Gini Trend Slope       : {slope:.6f}
-Falling Rate           : {falling_rate:.6f}
-Falling Penalty        : {falling_penalty:.6f}
-Residual STD           : {residual_std:.6f}
-Variability Penalty    : {variability_penalty:.6f}
-
-------------------------------------------------------------
-Official Stability     : {stability_metric:.6f}
-============================================================
-"""
-
-    print(result_text)
+    summary_df = pd.DataFrame({
+    "Dataset": [dataset_name] * 8,
+    "Metric": [
+        "Valid Weeks",
+        "Mean Weekly Gini",
+        "Gini Trend Slope",
+        "Falling Rate",
+        "Falling Penalty",
+        "Residual STD",
+        "Variability Penalty",
+        "Official Stability"
+    ],
+    "Value": [
+        len(weekly_df),
+        mean_gini,
+        slope,
+        falling_rate,
+        falling_penalty,
+        residual_std,
+        variability_penalty,
+        stability_metric
+    ]
+})
 
     return {
         "stability_metric": stability_metric,
@@ -1403,23 +1408,24 @@ Official Stability     : {stability_metric:.6f}
         "falling_penalty": falling_penalty,
         "residual_std": residual_std,
         "variability_penalty": variability_penalty,
+        "summary": summary_df,
         "weekly_results": weekly_df
     }
 
 
 
 
-evaluate_model(
-    y_train_pd,
-    train_probability,
-    "Train"
-)
+# evaluate_model(
+#     y_train_pd,
+#     train_probability,
+#     "Train"
+# )
 
-evaluate_model(
-    y_test_pd,
-    test_probability,
-    "Test"
-)
+# evaluate_model(
+#     y_test_pd,
+#     test_probability,
+#     "Test"
+# )
 
 train_official_result = evaluate_home_credit_official(
     y_true=y_train_pd,
@@ -1435,11 +1441,54 @@ test_official_result = evaluate_home_credit_official(
     dataset_name="Test"
 )
 
+## 合併成 Train/Test 橫向比較表
+
+official_comparison = pd.concat(
+    [
+        train_official_result["summary"],
+        test_official_result["summary"]
+    ],
+    ignore_index=True
+)
+
+official_comparison_table = (
+    official_comparison
+    .pivot(
+        index="Metric",
+        columns="Dataset",
+        values="Value"
+    )
+    .reindex([
+        "Valid Weeks",
+        "Mean Weekly Gini",
+        "Gini Trend Slope",
+        "Falling Rate",
+        "Falling Penalty",
+        "Residual STD",
+        "Variability Penalty",
+        "Official Stability"
+    ])
+    .reset_index()
+)
+
+official_comparison_table.columns.name = None
+
+# 顯示表格
+
+display(
+    official_comparison_table.style
+    .format({
+        "Train": "{:.6f}",
+        "Test": "{:.6f}"
+    })
+    .hide(axis="index")
+)
+
+
 #endregion
 # %%
 
-print(y_train_pd.shape)
-print(y_train_pd.ndim)
+print(train_official_result.keys())
 
 
 
