@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("base_final3.parquet")
+df = pl.scan_parquet("train_base_final3.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -1129,15 +1129,212 @@ from sklearn.metrics import (
     brier_score_loss
 )
 
-train = pl.scan_parquet("train_base_final.parquet")
-test = pl.scan_parquet("test_base_final.parquet")
+train = pl.scan_parquet("train_base_final3.parquet")
+test = pl.scan_parquet("test_base_final3.parquet")
 
 
 
-x_train = train.drop(["case_id","target","WEEK_NUM"])
+# x_train = train.drop(["case_id","target","WEEK_NUM"])
 y_train = train.select("target")
-x_test = test.drop(["case_id","target","WEEK_NUM"])
+# x_test = test.drop(["case_id","target","WEEK_NUM"])
 y_test = test.select("target")
+
+## 第一版 拔掉三個日期
+# x_train = train.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
+# x_test = test.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
+
+## 第二版 剩餘60特徵
+# x_train = train.select([
+#     "registaddr_zipcode_184M_appl",
+# "price_1097A",
+# "age_years_appl",
+# "disbursedcredamount_1113A",
+# "interestrate_311L",
+# "amount_4527230A_sum_positive",
+# "residualamount_856A__min",
+# "pmts_overdue_1140A_overdue_rate__weighted_avg",
+# "totalamount_996A__mean",
+# "numberofoutstandinstls_59L__min",
+# "pmts_dpd_1073P_recent_time_key__mean_fallback",
+# "tenure_years_max",
+# "totalamount_6A__sum",
+# "overdueamountmax_155A__std",
+# "numberofoverdueinstlmax_1039L__min",
+# "numinstunpaidmaxest_4493212L",
+# "pctinstlsallpaidlate1d_3546856L",
+# "pmts_dpd_303P_trend__mean",
+# "pmts_overdue_1140A_non_null_count__max",
+# "maxdpdinstldate_3546855D_days",
+# "numberofoutstandinstls_59L__sum",
+# "overdueamountmax_35A__mean",
+# "cntpmts24_3658933L",
+# "maxdbddpdtollast12m_3658940P",
+# "pmtaverage_3A",
+# "lastrejectdate_50D_days",
+# "incometype_1044T_appl",
+# "pctinstlsallpaidearl3d_427L",
+# "reject_rate",
+# "pmts_dpd_303P_longest_good_streak__max",
+# "pmts_dpd_303P_mean_positive__recomputed",
+# "lastdelinqdate_224D_days",
+# "overdueamountmax_35A__std",
+# "days360_512L",
+# "tenure_years_appl",
+# "pmts_dpd_303P_std__max",
+# "totalsettled_863A",
+# "monthlyinstlamount_674A__mean",
+# "pmts_dpd_303P_recent_time_key__mean_fallback",
+# "maxdpdtolerance_577P_mean",
+# "days90_310L",
+# "outstandingamount_362A__max",
+# "pmts_dpd_303P_non_null_count__sum",
+# "pmts_dpd_1073P_trend__max",
+# "numinstlswithoutdpd_562L",
+# "maxdebt4_972A",
+# "pmts_dpd_1073P_trend__mean",
+# "maxannuity_4075009A",
+# "numinstlswithdpd10_728L",
+# "disbursementtype_67L",
+# "maxdpdlast3m_392P",
+# "days180_256L",
+# "prolongationcount_599L__null_rate",
+# "rejectreasonclient_4145042M_non_placeholder_ratio",
+# "amount_4527230A_positive_count",
+# "last_status",
+# "familystate_447L_appl",
+# "pmts_dpd_303P_recent_time_key__max_fallback",
+# "subjectroles_name_838M_entropy__mean",
+# "avgdpdtolclosure24_3658938P"
+# ])
+# x_test = test.select([
+#     "registaddr_zipcode_184M_appl",
+# "price_1097A",
+# "age_years_appl",
+# "disbursedcredamount_1113A",
+# "interestrate_311L",
+# "amount_4527230A_sum_positive",
+# "residualamount_856A__min",
+# "pmts_overdue_1140A_overdue_rate__weighted_avg",
+# "totalamount_996A__mean",
+# "numberofoutstandinstls_59L__min",
+# "pmts_dpd_1073P_recent_time_key__mean_fallback",
+# "tenure_years_max",
+# "totalamount_6A__sum",
+# "overdueamountmax_155A__std",
+# "numberofoverdueinstlmax_1039L__min",
+# "numinstunpaidmaxest_4493212L",
+# "pctinstlsallpaidlate1d_3546856L",
+# "pmts_dpd_303P_trend__mean",
+# "pmts_overdue_1140A_non_null_count__max",
+# "maxdpdinstldate_3546855D_days",
+# "numberofoutstandinstls_59L__sum",
+# "overdueamountmax_35A__mean",
+# "cntpmts24_3658933L",
+# "maxdbddpdtollast12m_3658940P",
+# "pmtaverage_3A",
+# "lastrejectdate_50D_days",
+# "incometype_1044T_appl",
+# "pctinstlsallpaidearl3d_427L",
+# "reject_rate",
+# "pmts_dpd_303P_longest_good_streak__max",
+# "pmts_dpd_303P_mean_positive__recomputed",
+# "lastdelinqdate_224D_days",
+# "overdueamountmax_35A__std",
+# "days360_512L",
+# "tenure_years_appl",
+# "pmts_dpd_303P_std__max",
+# "totalsettled_863A",
+# "monthlyinstlamount_674A__mean",
+# "pmts_dpd_303P_recent_time_key__mean_fallback",
+# "maxdpdtolerance_577P_mean",
+# "days90_310L",
+# "outstandingamount_362A__max",
+# "pmts_dpd_303P_non_null_count__sum",
+# "pmts_dpd_1073P_trend__max",
+# "numinstlswithoutdpd_562L",
+# "maxdebt4_972A",
+# "pmts_dpd_1073P_trend__mean",
+# "maxannuity_4075009A",
+# "numinstlswithdpd10_728L",
+# "disbursementtype_67L",
+# "maxdpdlast3m_392P",
+# "days180_256L",
+# "prolongationcount_599L__null_rate",
+# "rejectreasonclient_4145042M_non_placeholder_ratio",
+# "amount_4527230A_positive_count",
+# "last_status",
+# "familystate_447L_appl",
+# "pmts_dpd_303P_recent_time_key__max_fallback",
+# "subjectroles_name_838M_entropy__mean",
+# "avgdpdtolclosure24_3658938P"
+# ])
+
+## 第三版 剩餘30特徵
+
+x_train = train.select(["registaddr_zipcode_184M_appl",
+"price_1097A",
+"age_years_appl",
+"amount_4527230A_sum_positive",
+"disbursedcredamount_1113A",
+"pmts_dpd_1073P_recent_time_key__mean_fallback",
+"interestrate_311L",
+"residualamount_856A__min",
+"pmts_overdue_1140A_overdue_rate__weighted_avg",
+"totalamount_996A__mean",
+"tenure_years_max",
+"pmts_overdue_1140A_non_null_count__max",
+"numberofoutstandinstls_59L__min",
+"totalamount_6A__sum",
+"pmts_dpd_303P_trend__mean",
+"overdueamountmax_155A__std",
+"numberofoutstandinstls_59L__sum",
+"maxdbddpdtollast12m_3658940P",
+"cntpmts24_3658933L",
+"lastrejectdate_50D_days",
+"numberofoverdueinstlmax_1039L__min",
+"pmts_dpd_303P_recent_time_key__mean_fallback",
+"pmts_dpd_303P_mean_positive__recomputed",
+"maxdpdinstldate_3546855D_days",
+"numinstunpaidmaxest_4493212L",
+"maxdebt4_972A",
+"pmts_dpd_303P_non_null_count__sum",
+"incometype_1044T_appl",
+"overdueamountmax_35A__mean",
+"pctinstlsallpaidearl3d_427L"
+])
+x_test = test.select(["registaddr_zipcode_184M_appl",
+"price_1097A",
+"age_years_appl",
+"amount_4527230A_sum_positive",
+"disbursedcredamount_1113A",
+"pmts_dpd_1073P_recent_time_key__mean_fallback",
+"interestrate_311L",
+"residualamount_856A__min",
+"pmts_overdue_1140A_overdue_rate__weighted_avg",
+"totalamount_996A__mean",
+"tenure_years_max",
+"pmts_overdue_1140A_non_null_count__max",
+"numberofoutstandinstls_59L__min",
+"totalamount_6A__sum",
+"pmts_dpd_303P_trend__mean",
+"overdueamountmax_155A__std",
+"numberofoutstandinstls_59L__sum",
+"maxdbddpdtollast12m_3658940P",
+"cntpmts24_3658933L",
+"lastrejectdate_50D_days",
+"numberofoverdueinstlmax_1039L__min",
+"pmts_dpd_303P_recent_time_key__mean_fallback",
+"pmts_dpd_303P_mean_positive__recomputed",
+"maxdpdinstldate_3546855D_days",
+"numinstunpaidmaxest_4493212L",
+"maxdebt4_972A",
+"pmts_dpd_303P_non_null_count__sum",
+"incometype_1044T_appl",
+"overdueamountmax_35A__mean",
+"pctinstlsallpaidearl3d_427L"
+])
+
+
 
 week_train_pd = (
     train
@@ -1488,9 +1685,131 @@ display(
 #endregion
 # %%
 
-print(train_official_result.keys())
+### 畫重要度圖
+
+importance_df = pd.DataFrame({
+    "Feature": x_train_pd.columns,
+    "Importance": model.feature_importances_
+})
+
+importance_df = (
+    importance_df
+    .sort_values(
+        "Importance",
+        ascending=False
+    )
+    .reset_index(drop=True)
+)
+
+display(importance_df)
+
+import matplotlib.pyplot as plt
+import lightgbm as lgb
+
+plt.figure(figsize=(10,12))
+
+lgb.plot_importance(
+    model,
+    max_num_features=30,
+    importance_type="gain"
+)
+
+plt.show()
+
+importance_df.to_csv("importance_df.csv", index=False, encoding="utf-8-sig")
+
+
+# %%
+
+### 處理三個日期格式(使用申請日相減)
+
+a = pl.scan_parquet("train_base_final.parquet")
+# b = pl.scan_parquet("test_base_final.parquet")
+c = pl.scan_parquet("train_base.parquet")
+c1 = c.select(["case_id","date_decision"])
+
+a1 = a.join(c1, on="case_id", how="left")
+# b1 = b.join(c1, on="case_id", how="left")
+
+a2 = a1.with_columns(
+    lastrejectdate_50D_days = (pl.col("date_decision").str.to_date() - pl.col("lastrejectdate_50D").str.to_date()).dt.total_days(),
+    maxdpdinstldate_3546855D_days = (pl.col("date_decision").str.to_date() - pl.col("maxdpdinstldate_3546855D").str.to_date()).dt.total_days(),
+    lastdelinqdate_224D_days = (pl.col("date_decision").str.to_date() - pl.col("lastdelinqdate_224D").str.to_date()).dt.total_days()
+)
+# b2 = b1.with_columns(
+#     lastrejectdate_50D_days = (pl.col("date_decision").str.to_date() - pl.col("lastrejectdate_50D").str.to_date()).dt.total_days(),
+#     maxdpdinstldate_3546855D_days = (pl.col("date_decision").str.to_date() - pl.col("maxdpdinstldate_3546855D").str.to_date()).dt.total_days(),
+#     lastdelinqdate_224D_days = (pl.col("date_decision").str.to_date() - pl.col("lastdelinqdate_224D").str.to_date()).dt.total_days()
+# )
+
+#lastdelinqdate_224D_days
+a3 = a2.with_columns(
+    pl.when(pl.col("lastdelinqdate_224D_days") < 0)
+    .then(None)
+    .otherwise(pl.col("lastdelinqdate_224D_days"))
+    .alias("lastdelinqdate_224D_days")
+)
+# b3 = b2.with_columns(
+#     pl.when(pl.col("lastdelinqdate_224D_days") < 0)
+#     .then(None)
+#     .otherwise(pl.col("lastdelinqdate_224D_days"))
+#     .alias("lastdelinqdate_224D_days")
+# )
+
+# #maxdpdinstldate_3546855D_days
+a4 = a3.with_columns(
+    pl.when(pl.col("maxdpdinstldate_3546855D_days") < 0)
+    .then(None)
+    .otherwise(pl.col("maxdpdinstldate_3546855D_days"))
+    .alias("maxdpdinstldate_3546855D_days")
+)
+# b4 = b3.with_columns(
+#     pl.when(pl.col("maxdpdinstldate_3546855D_days") < 0)
+#     .then(None)
+#     .otherwise(pl.col("maxdpdinstldate_3546855D_days"))
+#     .alias("maxdpdinstldate_3546855D_days")
+# )
+
+# #lastrejectdate_50D_days
+a5 = a4.with_columns(
+    pl.when(pl.col("lastrejectdate_50D_days") < 0)
+    .then(None)
+    .otherwise(pl.col("lastrejectdate_50D_days"))
+    .alias("lastrejectdate_50D_days")
+)
+# b5 = b4.with_columns(
+#     pl.when(pl.col("lastrejectdate_50D_days") < 0)
+#     .then(None)
+#     .otherwise(pl.col("lastrejectdate_50D_days"))
+#     .alias("lastrejectdate_50D_days")
+# )
+
+# # 查看負值比例
+# negative_rate_value = (
+#     a3.select(
+#         (pl.col("lastdelinqdate_224D_days") < 0)
+#         .mean()
+#         .alias("negative_rate")
+#     )
+#     .collect()
+#     .item()
+# )
+
+# print(negative_rate_value)
 
 
 
+a5.sink_parquet("train_base_final2.parquet")
+# b5.sink_parquet("test_base_final2.parquet")
 
+# %%
+
+a = pl.scan_parquet("train_base_final2.parquet")
+b = pl.scan_parquet("test_base_final2.parquet")
+
+a = a.drop("date_decision")
+b = b.drop("date_decision")
+
+a.sink_parquet("train_base_final3.parquet")
+b.sink_parquet("test_base_final3.parquet")
 # %%
