@@ -20,17 +20,31 @@ credit_bureau_a_2(depth-2)資料量達 1.88 億列,使用 DuckDB 聚合(regr_slo
 credit_bureau_b(b1/b2)依使用者指示忽略,不納入。
 """
 
+
 import glob
 import math
 import os
 
 import duckdb
 import polars as pl
+import lightgbm as lgb
+from lightgbm import LGBMClassifier
+
+import numpy as np
+import pandas as pd
+from IPython.display import display
+
+from sklearn.metrics import (
+    roc_auc_score,
+    roc_curve,
+    log_loss,
+    brier_score_loss
+)
 
 TRAIN_DIR = "data/train"
 TEST_DIR = "data/test"
-TRAIN_OUT = "data/df_train.parquet"
-TEST_OUT = "data/df_test.parquet"
+# TRAIN_OUT = "data/df_train.parquet"
+# TEST_OUT = "data/df_test.parquet"
 
 M_PLACEHOLDER = "a55475b1"
 REFERENCE_YEAR = 2024
@@ -743,17 +757,157 @@ def build_dataset(data_dir: str, split: str) -> pl.DataFrame:
     print(f"  {split} shape: {out.shape}")
     return out
 
+def evaluate_model(
+    y_true,
+    probability,
+    dataset_name
+):
+
+    auc = roc_auc_score(
+        y_true,
+        probability
+    )
+
+    gini = 2*auc-1
+
+    fpr,tpr,_ = roc_curve(
+        y_true,
+        probability
+    )
+
+    ks = np.max(
+        tpr-fpr
+    )
+
+    ll = log_loss(
+        y_true,
+        probability
+    )
+
+    brier = brier_score_loss(
+        y_true,
+        probability
+    )
+
+    print("="*40)
+    print(dataset_name)
+    print("="*40)
+
+    print(f"AUC         : {auc:.6f}")
+    print(f"Gini        : {gini:.6f}")
+    print(f"KS          : {ks:.6f}")
+    print(f"LogLoss     : {ll:.6f}")
+    print(f"Brier Score : {brier:.6f}")
+
 
 def main():
     df_train = build_dataset(TRAIN_DIR, "train")
     df_test = build_dataset(TEST_DIR, "test")
 
-    df_train.write_parquet(TRAIN_OUT)
-    df_test.write_parquet(TEST_OUT)
-    print(f"written: {TRAIN_OUT} {df_train.shape}")
-    print(f"written: {TEST_OUT} {df_test.shape}")
+    # df_train.write_parquet(TRAIN_OUT)
+    # df_test.write_parquet(TEST_OUT)
+    # print(f"written: {TRAIN_OUT} {df_train.shape}")
+    # print(f"written: {TEST_OUT} {df_test.shape}")
     return df_train, df_test
 
 
 if __name__ == "__main__":
     df_train, df_test = main()
+
+
+
+#訓練模型
+train = df_train
+test = df_test
+
+x_train = train.drop(["case_id","target","WEEK_NUM","date_decision"])
+x_test = test.drop(["case_id","WEEK_NUM","date_decision"])
+y_train = train.select("target")
+test_submit = test.select("case_id")
+
+week_train_pd = (
+    train
+    .select("WEEK_NUM")
+    .to_numpy()
+    .ravel()
+)
+
+week_test_pd = (
+    test
+    .select("WEEK_NUM")
+    .to_numpy()
+    .ravel()
+)
+
+
+x_train_pd = x_train.to_pandas()
+y_train_pd = y_train.to_numpy().ravel()
+x_test_pd = x_test.to_pandas()
+
+
+
+categorical_cols = list(
+    x_train_pd.select_dtypes(include=["object"]).columns
+)
+
+for col in categorical_cols:
+    x_train_pd[col] = x_train_pd[col].astype("category")
+    x_test_pd[col] = x_test_pd[col].astype("category")
+
+    model = LGBMClassifier(
+    objective="binary",
+    boosting_type="gbdt",
+
+    n_estimators=500,
+
+    learning_rate=0.05,
+
+    num_leaves=31,
+
+    random_state=42,
+
+    n_jobs=-1
+)
+
+model.fit(
+    x_train_pd,
+    y_train_pd
+)
+
+## 這個就是輸出機率
+
+train_probability = model.predict_proba(x_train_pd)[:,1]
+test_probability = model.predict_proba(x_test_pd)[:,1]
+df_subm = test_submit.to_pandas()
+
+df_subm["score"] = test_probability
+df_subm.head()
+print(df_subm)
+
+importance_df = pd.DataFrame({
+    "Feature": x_train_pd.columns,
+    "Importance": model.feature_importances_
+})
+
+importance_df = (
+    importance_df
+    .sort_values(
+        "Importance",
+        ascending=False
+    )
+    .reset_index(drop=True)
+)
+
+# display(importance_df)
+# importance_df.to_csv("feature_I")
+
+evaluate_model(
+    y_train_pd,
+    train_probability,
+    "Train"
+)
+print(evaluate_model(
+    y_train_pd,
+    train_probability,
+    "Train"
+))

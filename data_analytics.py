@@ -51,6 +51,12 @@ con.sql("""
     FROM 'data/df_train.parquet'
 """)
 
+con.sql("""
+    CREATE OR REPLACE VIEW valid_base_final AS
+    SELECT *
+    FROM 'data/valid_base_final.parquet'
+""")
+
 con.sql("CALL start_ui();")
 print(con.sql("SELECT loaded,installed FROM duckdb_extensions() WHERE extension_name = 'ui';"))
 
