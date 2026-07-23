@@ -2130,3 +2130,57 @@ categorical_comparison.to_csv("A級分析(類別).csv", index=False, encoding="u
 
 #endregion
 # %%
+#region[rgba(52,152,219,0.15)]
+
+#### 使用SHAP解釋
+
+import numpy as np
+import pandas as pd
+import shap
+import matplotlib.pyplot as plt
+
+print("SHAP version:", shap.__version__)
+
+
+#endregion
+# %%
+
+## 驗證周的gini
+
+weekly_df = pd.DataFrame({
+    "WEEK_NUM": week_test_pd,
+    "target": y_test_pd,
+    "prediction": test_probability
+})
+
+weekly_gini = []
+
+for week, group in weekly_df.groupby("WEEK_NUM"):
+
+    # 至少要有兩種target
+    if group["target"].nunique() < 2:
+        continue
+
+    auc = roc_auc_score(
+        group["target"],
+        group["prediction"]
+    )
+
+    gini = 2 * auc - 1
+
+    weekly_gini.append({
+        "WEEK_NUM": week,
+        "Sample": len(group),
+        "Default": group["target"].sum(),
+        "AUC": auc,
+        "Gini": gini
+    })
+
+weekly_gini = (
+    pd.DataFrame(weekly_gini)
+    .sort_values("WEEK_NUM")
+    .reset_index(drop=True)
+)
+
+weekly_gini
+# %%
