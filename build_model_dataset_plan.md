@@ -1,123 +1,129 @@
-# Train/Test 建模特徵管線重建計畫（data/train/ + data/test/ → df_train / df_test）
+# build_model_dataset.py 擴充計畫：資料工程/特徵工程分區 + 財務指標
 
 ## Context
 
-先前的 `base_final.parquet` 只為 **train** 建置,且產生它的聚合程式(credit_bureau、static、
-tax_registry)多數未進版控。現在要建立一條**統一、可重現**的 ETL 管線,對 `data/train/` 與
-`data/test/` 的原始分區檔,用**相同程式**重建最終選定的建模特徵(約 82 欄 + 5 個衍生欄),
-使 train 與 test 的特徵定義完全一致,供後續特徵工程/建模使用。
+延續已完成並驗證的 [build_model_dataset.py](build_model_dataset.py)
+（從 `data/train/`、`data/test/` 原始分區重建 84 個建模特徵 → `df_train`/`df_test`）。
+本次要**擴充並重構**該管線,新增六項需求:
+
+1. **程式與 plan 明確區分「資料工程(DATA ENGINEERING)」與「特徵工程(FEATURE ENGINEERING)」兩區塊**,
+   程式加上區塊註解(需求 2)。
+2. **依欄位標籤做格式標準化 Transform**(資料工程,需求 3):P=DPD 天數→數值、M=遮罩類別→字串類別、
+   A=金額→數值、D=日期→Date、T/L=未指定(維持原生型別)。
+3. **`date_decision` 減 3 個日期欄 → `_days` 欄**(資料工程,需求 4):`lastrejectdate_50D`、
+   `maxdpdinstldate_3546855D`、`lastdelinqdate_224D` → `{col}_days`,原 D 欄於特徵工程階段移除。
+4. **新的清洗規則**(特徵工程,需求 5):連續型 99%PR 截尾(p99==0 不補)、A 欄負值→null、
+   **`days` 欄負值→null**、**D 欄已轉 days 故移除**。
+5. **7 個財務基礎欄依 `Financial indicators.csv` 選統計指標聚合**(需求 6),並在本 plan 說明選用理由。
+6. **建構 3 個財務比率特徵**(需求 9),名稱與說明記於本 plan。
 
 **已與使用者確認的決策**:
-- **忽略 credit_bureau_b 系列(b1 與 b2)** → 捨棄 3 個 `b2_pmts_dpdvalue_108P_*` 特徵。
-- credit_bureau_a_2 的自訂統計指標(trend/longest_good_streak/recent_time_key/weighted_avg/
-  recomputed/duration 等)**依 `feature_name_mapping.csv` 的「計算方式」欄實作**(此檔已在磁碟)。
-- **train 與 test 都從原始分區檔重建**(同一份程式),不重用舊的 base_final.parquet。
-- **test 無 `target`**(Kaggle 測試集未標記):test 輸出 = case_id + WEEK_NUM + 特徵;train 保留 target。
-- 輸出 **Polars DataFrame 變數 `df_train` / `df_test`**,並各自寫出 parquet。
+- **繼續忽略 credit_bureau_b(b1/b2)** → 維持捨棄 3 個 `b2_pmts_dpdvalue_108P_*` 特徵。
+- **7 個財務基礎欄「聚合後」保留為輸出特徵**(在「只用下列欄位」清單中),同時作為財務比率的輸入。
+- **DTI 分母用 coalesce**:`totaldebt_9A / coalesce(maininc_215A, mainoccupationinc_384A)`。
+- 輸出 `df_train`/`df_test`(Polars)+ parquet;`date_decision` 本次**保留於輸出**(清單已列)。
 
-**已從 git 歷史/磁碟回收的關鍵參考**:
-- `feature_name_mapping.csv`(151 列,磁碟上)——credit_bureau_a_2 每個後贅詞的精確計算方式。
-- `bureau_a2_merge_GroupRule.txt`、`bureau_a1_GroupRule.txt`、`bureau_a1_clean.txt`(git 歷史 commit 7721d01)——bureau 清洗/聚合規則。
-- 既有 repo 程式:`data_preprocessing_2.py`(applprev_1 聚合+reject_rate/last_status/tenure_years)、
-  `train_person_agg.py`(person_1 的 `_appl` 欄+age/tenure)——衍生欄公式來源(見步驟 5)。
+## 資料工程 vs 特徵工程的界線(本次組織原則)
 
-## 檔案結構與 depth 分類（Home Credit 慣例 `{split}_{table}_{depth}_{partition}`）
-
-`data/train/` 33 檔、`data/test/` 36 檔(test 的分區更多)。以檔名倒數第二個數字為 **depth(X)**,
-最後一個數字為分區(Y);`file_name_W_X` 相同者(僅差分區 Y)先 **union**:
-
-| depth | 表(union 後) | 處理方式 | 選中特徵數 |
-|---|---|---|---|
-| 0 | `static_0`(分區 0/1[/2])、`static_cb_0`、`base` | 清洗後直接 join(已是 case_id 層級) | static_0=27、static_cb_0=8 |
-| 1 | `credit_bureau_a_1`(分區 0-3/0-4)、`applprev_1`(分區 0-1/0-2)、`tax_registry_a_1` | 一次聚合 by `case_id` | a_1=13、applprev_1=4、tax_a=2 |
-| 1 | `person_1` | 取 num_group1==0(本人)直取 + 衍生 | person `_appl`=5 |
-| 2 | `credit_bureau_a_2`(分區 0-10/0-11) | 一次聚合 by (case_id,num_group1) → 二次聚合 by case_id | a_2=20 |
-| — | `credit_bureau_b_1/b_2`、debitcard、deposit、other、person_2、tax_b/c | **忽略**(無選中特徵或使用者指定忽略) | 0 |
-
-## 步驟 1:union 分區檔
-
-對每個 `file_name_W_X`,`pl.scan_parquet("data/{split}/{split}_{name}_{X}_*.parquet")` 惰性讀取後
-`concat`(vertical)。單檔(無分區)直接讀。train/test 各自處理,前贅詞 `train_`/`test_`。
-
-## 步驟 2:合理值清洗（依使用者 step 2,為本任務權威規則）
-
-對「只讀取的必要欄位」套用(逐 split 各自以自身資料計算分位數,避免 test 用到 train 統計):
-1. **連續型 99%PR 截尾(winsorize,不刪列)**:`x > p99 → p99`;**若 `p99 == 0` 則不截尾**
-   (避免抹除稀疏逾期訊號,沿用 `data_preprocessing_2.py` 對 actualdpd 的既有決策)。
-2. **大寫 `A` 結尾欄(金額)→ 負值設 NULL**(`col < 0 → null`)。
-3. **大寫 `D` 結尾欄(日期)→ 不合理未來日設 NULL**:晚於該列 `date_decision`(person)或全域上界者設 NULL。
-4. **bureau_a2 補充規則**(來自 `bureau_a2_merge_GroupRule.txt`):DPD(`P` 欄)負值設 NULL;
-   繳款年月(`pmts_year_*T`)落在 2025-2028 等未來/無效年份設 NULL(月份須在 1-12)。
-
-## 步驟 3:聚合（依欄位後贅詞決定統計指標,計算方式一律引用 `feature_name_mapping.csv`）
-
-**後贅詞 → 統計指標對照(節錄自 `feature_name_mapping.csv` 計算方式欄)**:
-
-| 後贅詞 | 計算方式 |
-|---|---|
-| `mean`/`max`/`min`/`median`/`std` | 非空值 mean/max/min/median、樣本標準差(stddev_samp) |
-| `mode`/`n_unique`/`entropy` | 眾數 / count distinct / 分布熵 |
-| `positive_count`/`overdue_rate`/`mean_positive`/`sum_positive` | x>0 筆數 / (x>0 筆數÷非空筆數) / x>0 之 mean / x>0 之 sum |
-| `null_count`/`null_rate`/`non_null_count` | NULL 筆數 / NULL 比例 / 非 NULL 筆數 |
-| `recent3_mean`/`recent6_mean`/`recent12_mean` | 依(年月鍵, num_group2)排序後最近 N 筆平均 |
-| `trend` | 依時間排序後 `regr_slope`(線性回歸斜率,是否越來越嚴重) |
-| `last`/`recent_time_key` | 排序後最新一筆值 / `year*12+month` 的最大有效值 |
-| `consecutive_max`/`current_streak`/`longest_good_streak` | 連續 x>0 最長 / 最新往回連續 x>0 期數 / 連續 x==0 最長 |
-| 日期 `min`/`max`/`n_unique`/`duration`/`recent` | 年月鍵 min/max、distinct 數、(max−min 跨度)、max |
-| 二次(case 層級)`recomputed` | 以 Σsum_positive ÷ Σpositive_count 重算、並取 max |
-| 二次 `weighted_avg` | 以非缺失筆數為權重的加權平均 |
-| 二次 `mean_fallback`/`max_fallback` | 對一次聚合值取 mean/max,缺失以 fallback 值(0)替補 |
-
-**depth-1(X=1)** — `aggregate by case_id`。credit_bureau_a_1/tax_registry_a_1 用上表對應後贅詞的
-單層統計(選中欄後贅詞:`__min`/`__sum`/`__mean`/`__std`/`__max`/`__null_rate`)。
-
-**depth-2(X=2,credit_bureau_a_2)** — 兩層,選中特徵名格式 `{raw}_{L1}__{L2}`:
-1. **一次聚合** by `(case_id, num_group1)`:對原始欄算 L1 後贅詞統計。時間序列類(trend/recent_time_key/
-   longest_good_streak/duration…)需先在群組內依 `年月鍵(year*12+month), num_group2` 排序。
-   年月鍵取自各欄對應的繳款年月欄(active=`pmts_year_1139T`/`pmts_month_158T`;
-   closed=`pmts_year_507T`/`pmts_month_706T`;`pmts_dpd_1073P`=active、`pmts_dpd_303P`=closed)。
-2. **二次聚合** by `case_id`:對一次聚合結果算 L2 後贅詞統計(`__max`/`__mean`/`__sum`/`__min`/
-   `__weighted_avg`/`__recomputed`/`__mean_fallback`/`__max_fallback`)。
-
-實作:寫一個「特徵名 → (原始欄, L1 stat, L2 stat)」解析器 + 一組後贅詞統計函式庫(Polars 表達式),
-只計算選中特徵所需的統計,不全量展開(避免產生上千無用欄)。categorical 欄(subjectroles_name_838M)
-用 mode/n_unique/entropy。
-
-## 步驟 4:join 回 base
-
-以 union 後的 `{split}_base.parquet`(case_id、WEEK_NUM、date_decision、MONTH、train 另有 target)
-為主表,`left join`(on `case_id`):depth-0 表(static_0、static_cb_0)、depth-1 聚合表、
-depth-2 二次聚合表、步驟 5 衍生欄。最後 `select` 僅保留最終欄位清單。
-
-## 步驟 5:5 個衍生欄（回憶自既有程式,公式記錄如下）
-
-| 欄位 | 來源 | 公式(依 `case_id` 分組) |
+| 區塊 | 職責 | 對應函式 |
 |---|---|---|
-| `reject_rate` | applprev_1 | `sum(status_219L=='D') / sum(status_219L is not null)`(見 [data_preprocessing_2.py](data_preprocessing_2.py)) |
-| `last_status` | applprev_1 | 依 `creationdate_885D` 升冪排序後 `status_219L` 的 `last()` |
-| `tenure_years_max` | applprev_1 | `tenure_years = 2024 − (year(employedfrom_700D)+(month−1)/12)`,取群組 `max` |
-| `age_years_appl` | person_1 | 本人列(num_group1==0):`(date_decision − coalesce(birth_259D,birthdate_87D)).days / 365.25`(見 [train_person_agg.py](train_person_agg.py)) |
-| `tenure_years_appl` | person_1 | 本人列:`(date_decision − empl_employedfrom_271D).days / 365.25` |
+| **資料工程** | union 分區、依標籤標準化型別、日期轉 `_days`。「把原始資料整理成乾淨、正確型別的表」 | `read_table`、`transform_by_label`、`add_date_diff_days` |
+| **特徵工程** | 合理值清洗(截尾/負值)、聚合(depth 0/1/2、後贅詞統計)、財務指標、5 衍生欄、join | `winsorize_p99`、`clean_by_label`、各 `build_*`、`build_financial_indicators` |
 
-person_1 的 5 個 `_appl` 類別欄(education_927M_appl / incometype_1044T_appl / familystate_447L_appl /
-empl_industry_691L_appl / registaddr_zipcode_184M_appl)= 本人列(num_group1==0)直取對應原始欄。
+程式以區塊註解 banner 分隔,且各 `build_*` 函式內以 `# [資料工程]` / `# [特徵工程]` 標註每步。
+
+## 來源表 / depth 對照(新增財務欄與 other_1)
+
+| depth | 表 | 選中/財務欄 | 顆粒度 |
+|---|---|---|---|
+| 0 | static_0 | 既有 27 欄 + **totaldebt_9A、maininc_215A**(財務) | 1:1 |
+| 0 | static_cb_0 | 既有 8 欄 | 1:1 |
+| 1 | credit_bureau_a_1 | 既有 13 欄 + **totaldebtoverduevalue_178A、totaloutstanddebtvalue_39A**(財務) | 11.5 列/case |
+| 1 | applprev_1 | 既有 4 欄 + reject_rate/last_status/tenure_years_max | 4.3 列/case |
+| 1 | person_1 | 既有 5 `_appl` + age/tenure + **mainoccupationinc_384A**(財務) | 1.95 列/case |
+| 1 | **other_1(新 builder)** | **amtdepositincoming_4809444A、amtdebitoutgoing_4809440A**(財務) | 1:1 |
+| 2 | credit_bureau_a_2 | 既有 20 欄(DuckDB,不變) | 1.88 億列 |
+
+## 【資料工程】步驟
+
+### D1. union 分區檔（不變）
+沿用 `read_table`:`{split}_{table}_{X}_*.parquet` union;單檔直讀。
+
+### D2. 依標籤格式標準化 `transform_by_label(df, cols)`
+逐欄依**大寫尾碼**標準化型別:
+
+| 標籤 | 語意 | 標準化動作 |
+|---|---|---|
+| `*D` | Transform date | `str.strptime(pl.Date, strict=False)` |
+| `*A` | Transform amount | `cast(pl.Float64)` |
+| `*P` | Transform DPD(天數) | `cast(pl.Float64)` |
+| `*M` | Masking categories | `cast(pl.Utf8)`(維持遮罩雜湊字串為類別) |
+| `*T` / `*L` | Unspecified | 維持原生型別(不強制轉換) |
+
+### D3. 日期差轉 `_days`  `add_date_diff_days(df, date_cols, ref="date_decision")`
+對 `lastrejectdate_50D`、`maxdpdinstldate_3546855D`、`lastdelinqdate_224D`:
+`{col}_days = (date_decision − col).dt.total_days()`。原 D 欄留待特徵工程 D4 移除。
+
+## 【特徵工程】步驟
+
+### F1. 合理值清洗（需求 5）
+- **連續型 99%PR 截尾**(`winsorize_p99`,不刪列;`p99==0` 或近似 0 則不截尾)。
+- **A 欄負值 → null**(`clean_by_label`,金額不可為負)。
+- **`_days` 欄負值 → null**(負 days = 日期晚於 date_decision,不合理)。
+- **D 欄移除**:`_days` 已取代,drop `lastrejectdate_50D` 等 3 個原始 D 欄。
+- `_days` 欄視為連續型,亦套用 99%PR 截尾。
+
+### F2. 聚合（depth 0/1/2,後贅詞決定統計指標；不變）
+沿用既有 `stat_expr` / `NUMERIC_STAT_FUNCS` / `cat_group_stats` 與 DuckDB depth-2 邏輯。
+
+### F3. 財務基礎欄聚合統計選用（需求 6 — 理由記錄）
+7 欄依 `Financial indicators.csv` 之比率語意選聚合統計;**輸出沿用原始欄名**(代表 case 層級值):
+
+| 財務欄 | 來源(depth) | 選用統計 | 選用理由 |
+|---|---|---|---|
+| `totaldebt_9A` | static_0(0) | 直取 | 已是 case 層級「總負債」,1:1 無需聚合 |
+| `maininc_215A` | static_0(0) | 直取 | 已是 case 層級「主要收入」,1:1 無需聚合 |
+| `mainoccupationinc_384A` | person_1(1) | **max** | 收入為申請人層級屬性,僅本人列(num_group1==0)有值、關係人列 100% 缺失;max 跳過 null 即取回本人收入,對任何雜訊非空值亦穩健 |
+| `totaldebtoverduevalue_178A` | credit_bureau_a_1(1) | **sum** | 指標語意為「逾期債務佔總未償債務比例」;分子應為客戶所有存續合約的**逾期債務總額**,故跨合約加總 |
+| `totaloutstanddebtvalue_39A` | credit_bureau_a_1(1) | **sum** | 同上,分母為跨合約的**未償債務總額**;sum 與分子同層級才能構成正確比率 |
+| `amtdepositincoming_4809444A` | other_1(1) | **sum** | 流動性指標分子=存款流入總額;other_1 為 1:1,sum 即該值,且語意上總流入最能代表可用流動性 |
+| `amtdebitoutgoing_4809440A` | other_1(1) | **sum** | 流動性指標分母=支出流出總額;sum 與分子同層級 |
+
+### F4. 財務比率特徵（需求 9 — 名稱與說明記錄）
+以 F3 聚合後(case 層級)欄位計算,除零/除 null 以 `NULLIF` 保護回傳 null:
+
+| 特徵名 | 比率類別 | 計算 | 說明 |
+|---|---|---|---|
+| `dti_ratio` | 償債能力 | `totaldebt_9A / NULLIF(coalesce(maininc_215A, mainoccupationinc_384A), 0)` | Debt-to-Income:現行總負債相對收入之壓力;收入以主要收入為主、職業收入為備援(補 maininc 的 33% 缺失) |
+| `overdue_debt_ratio` | 逾期風險 | `totaldebtoverduevalue_178A / NULLIF(totaloutstanddebtvalue_39A, 0)` | 存續合約中逾期債務佔總未償債務之比例,越高風險越大 |
+| `deposit_to_debt_ratio` | 流動性 | `amtdepositincoming_4809444A / NULLIF(amtdebitoutgoing_4809440A, 0)` | 存款負債覆蓋率:存款流入相對支出流出,衡量以現有現金流償債之能力 |
+
+### F5. 5 個衍生欄（需求 10;不變,公式已於前一版驗證）
+`reject_rate`、`last_status`、`tenure_years_max`(applprev_1)、`age_years_appl`、`tenure_years_appl`
+(person_1)——沿用既有 `build_applprev` / `build_person` 實作。
+
+### F6. join 回 base（需求 8）
+以 `{split}_base`(case_id、WEEK_NUM、date_decision、train 另含 target)為主表,left join:
+static_0、static_cb_0、a_1、applprev_1、person_1、a_2、**other_1**、財務比率。
+最後 `select` 最終欄位清單(見下)。
+
+## 最終輸出欄位
+
+鍵:`case_id`、`WEEK_NUM`、`date_decision`(+ train 的 `target`)。特徵 = 前一版 79 個非 b2 特徵,
+其中 3 個 D 欄改為 `_days` 版本,**再加** 7 個財務基礎欄 + 3 個財務比率。b2 三欄維持排除。
 
 ## 產出檔案
 
-- **新增** `build_model_dataset.py`(repo 根目錄,Polars,風格沿用 `data_preprocessing_2.py`):
-  以 `SPLIT` 參數(train/test)驅動同一套函式;`main()` 對 train、test 各跑一次。
-  模組化函式:`union_partitions`、`clean_continuous/clean_by_label`、`agg_depth1`、
-  `agg_depth2`(含後贅詞函式庫)、`derive_applprev`、`derive_person`、`join_to_base`。
-- **新增** `data/df_train.parquet`、`data/df_test.parquet`;程式回傳 `df_train`、`df_test`(Polars)。
-- **新增** `build_model_dataset_plan.md`(專案內,本計畫存查)。
+- **改寫** `build_model_dataset.py`(區塊化 + 新增 `transform_by_label`/`add_date_diff_days`/
+  `build_other`/`build_financial_indicators`;`build_static`/`build_bureau_a1`/`build_person` 擴充財務欄)。
+- **覆寫** `data/df_train.parquet`、`data/df_test.parquet`。
 
 ## 驗證方式
 
-1. 執行 `python build_model_dataset.py` 無錯誤;`df_train` 列數 = `train_base` 的 case_id 數
-   (1,526,659)、`df_test` 列數 = `test_base` case_id 數;兩者欄位集合一致(test 少 `target`)。
-2. 每個最終欄位皆存在;無因 join 產生的重複 case_id;`df_train`/`df_test` 欄名 = 選定清單。
-3. 抽驗一致性:`df_train` 的 `reject_rate ∈ [0,1]`、`age_years_appl` 落在合理區間;
-   挑 2-3 個 case_id 手工比對 depth-2 的 `pmts_dpd_303P_std__max`(先 (case_id,num_group1) 算 std、
-   再 case_id 取 max)與原始列一致。
-4. 清洗檢查:winsorize 欄 max ≈ 各自 split 的 p99;A 欄無負值;D 欄無未來日;p99==0 的欄未被截尾。
-5. train vs test 欄位分布抽樣比對(數值範圍、缺失率)合理,無因分區/前贅詞錯置導致的整欄 NULL。
+1. 執行無錯誤;`df_train` 列數 = 1,526,659、`df_test` = test_base case 數;欄集合一致(test 少 target)。
+2. `_days` 欄:無負值(已清 null)、最大值 ≈ 各自 p99;原 3 個 D 欄不在輸出。
+3. 財務比率:`dti_ratio`/`overdue_debt_ratio`/`deposit_to_debt_ratio` 皆 ≥ 0;抽 2-3 個 case 手工
+   比對(如 `overdue_debt_ratio` = sum(178A)/sum(39A))。
+4. 財務基礎欄:`totaldebtoverduevalue_178A`(sum)、`mainoccupationinc_384A`(max)抽樣對照原始列。
+5. 標籤 Transform:D 欄輸出前為 Date、A/P 為 Float64、M 為字串;抽查 dtype。
+6. 沿用既有驗證(reject_rate∈[0,1]、age 合理、depth-2 手算比對)仍通過。

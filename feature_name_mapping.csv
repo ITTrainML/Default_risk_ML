@@ -1,0 +1,160 @@
+﻿聚合後欄位名稱,中文說明,特徵類型,來源/主題,計算方式
+case_id,案件 ID,主鍵,原始欄位,與 num_group1 一起作為聚合主鍵
+num_group1,合約/群組序號,主鍵,原始欄位,與 case_id 一起作為聚合主鍵
+active_dpd_mean,存續合約繳款逾期天數 - 平均值,連續型基本統計,存續合約繳款逾期天數,非空值平均
+active_dpd_max,存續合約繳款逾期天數 - 最大值,連續型基本統計,存續合約繳款逾期天數,非空值最大值
+active_dpd_std,存續合約繳款逾期天數 - 標準差,連續型基本統計,存續合約繳款逾期天數,樣本標準差 stddev_samp
+active_dpd_median,存續合約繳款逾期天數 - 中位數,連續型基本統計,存續合約繳款逾期天數,median
+active_dpd_mode,存續合約繳款逾期天數 - 眾數,連續型基本統計,存續合約繳款逾期天數,最常出現的值
+active_dpd_n_unique,存續合約繳款逾期天數 - 不同值數量,連續型基本統計,存續合約繳款逾期天數,count distinct
+active_dpd_positive_count,存續合約繳款逾期天數 - 大於 0 的筆數,連續型基本統計,存續合約繳款逾期天數,x > 0 的筆數
+active_dpd_overdue_rate,存續合約繳款逾期天數 - 大於 0 的比例,連續型基本統計,存續合約繳款逾期天數,大於 0 筆數 / 非空筆數
+active_dpd_mean_positive,存續合約繳款逾期天數 - 大於 0 時的平均值,連續型基本統計,存續合約繳款逾期天數,只計算 x > 0 的平均
+active_dpd_sum_positive,存續合約繳款逾期天數 - 大於 0 的總和,連續型基本統計,存續合約繳款逾期天數,只加總 x > 0
+active_dpd_null_count,存續合約繳款逾期天數 - 缺失筆數,連續型基本統計,存續合約繳款逾期天數,NULL 筆數
+active_dpd_null_rate,存續合約繳款逾期天數 - 缺失比例,連續型基本統計,存續合約繳款逾期天數,NULL 筆數 / 總筆數
+active_dpd_non_null_count,存續合約繳款逾期天數 - 有資料筆數,連續型基本統計,存續合約繳款逾期天數,非 NULL 筆數
+closed_dpd_mean,已終止/已結清合約繳款逾期天數 - 平均值,連續型基本統計,已終止/已結清合約繳款逾期天數,非空值平均
+closed_dpd_max,已終止/已結清合約繳款逾期天數 - 最大值,連續型基本統計,已終止/已結清合約繳款逾期天數,非空值最大值
+closed_dpd_std,已終止/已結清合約繳款逾期天數 - 標準差,連續型基本統計,已終止/已結清合約繳款逾期天數,樣本標準差 stddev_samp
+closed_dpd_median,已終止/已結清合約繳款逾期天數 - 中位數,連續型基本統計,已終止/已結清合約繳款逾期天數,median
+closed_dpd_mode,已終止/已結清合約繳款逾期天數 - 眾數,連續型基本統計,已終止/已結清合約繳款逾期天數,最常出現的值
+closed_dpd_n_unique,已終止/已結清合約繳款逾期天數 - 不同值數量,連續型基本統計,已終止/已結清合約繳款逾期天數,count distinct
+closed_dpd_positive_count,已終止/已結清合約繳款逾期天數 - 大於 0 的筆數,連續型基本統計,已終止/已結清合約繳款逾期天數,x > 0 的筆數
+closed_dpd_overdue_rate,已終止/已結清合約繳款逾期天數 - 大於 0 的比例,連續型基本統計,已終止/已結清合約繳款逾期天數,大於 0 筆數 / 非空筆數
+closed_dpd_mean_positive,已終止/已結清合約繳款逾期天數 - 大於 0 時的平均值,連續型基本統計,已終止/已結清合約繳款逾期天數,只計算 x > 0 的平均
+closed_dpd_sum_positive,已終止/已結清合約繳款逾期天數 - 大於 0 的總和,連續型基本統計,已終止/已結清合約繳款逾期天數,只加總 x > 0
+closed_dpd_null_count,已終止/已結清合約繳款逾期天數 - 缺失筆數,連續型基本統計,已終止/已結清合約繳款逾期天數,NULL 筆數
+closed_dpd_null_rate,已終止/已結清合約繳款逾期天數 - 缺失比例,連續型基本統計,已終止/已結清合約繳款逾期天數,NULL 筆數 / 總筆數
+closed_dpd_non_null_count,已終止/已結清合約繳款逾期天數 - 有資料筆數,連續型基本統計,已終止/已結清合約繳款逾期天數,非 NULL 筆數
+active_overdue_mean,存續合約逾期繳款金額/數值 - 平均值,連續型基本統計,存續合約逾期繳款金額/數值,非空值平均
+active_overdue_max,存續合約逾期繳款金額/數值 - 最大值,連續型基本統計,存續合約逾期繳款金額/數值,非空值最大值
+active_overdue_std,存續合約逾期繳款金額/數值 - 標準差,連續型基本統計,存續合約逾期繳款金額/數值,樣本標準差 stddev_samp
+active_overdue_median,存續合約逾期繳款金額/數值 - 中位數,連續型基本統計,存續合約逾期繳款金額/數值,median
+active_overdue_mode,存續合約逾期繳款金額/數值 - 眾數,連續型基本統計,存續合約逾期繳款金額/數值,最常出現的值
+active_overdue_n_unique,存續合約逾期繳款金額/數值 - 不同值數量,連續型基本統計,存續合約逾期繳款金額/數值,count distinct
+active_overdue_positive_count,存續合約逾期繳款金額/數值 - 大於 0 的筆數,連續型基本統計,存續合約逾期繳款金額/數值,x > 0 的筆數
+active_overdue_overdue_rate,存續合約逾期繳款金額/數值 - 大於 0 的比例,連續型基本統計,存續合約逾期繳款金額/數值,大於 0 筆數 / 非空筆數
+active_overdue_mean_positive,存續合約逾期繳款金額/數值 - 大於 0 時的平均值,連續型基本統計,存續合約逾期繳款金額/數值,只計算 x > 0 的平均
+active_overdue_sum_positive,存續合約逾期繳款金額/數值 - 大於 0 的總和,連續型基本統計,存續合約逾期繳款金額/數值,只加總 x > 0
+active_overdue_null_count,存續合約逾期繳款金額/數值 - 缺失筆數,連續型基本統計,存續合約逾期繳款金額/數值,NULL 筆數
+active_overdue_null_rate,存續合約逾期繳款金額/數值 - 缺失比例,連續型基本統計,存續合約逾期繳款金額/數值,NULL 筆數 / 總筆數
+active_overdue_non_null_count,存續合約逾期繳款金額/數值 - 有資料筆數,連續型基本統計,存續合約逾期繳款金額/數值,非 NULL 筆數
+closed_overdue_mean,已終止/已結清合約逾期繳款金額/數值 - 平均值,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,非空值平均
+closed_overdue_max,已終止/已結清合約逾期繳款金額/數值 - 最大值,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,非空值最大值
+closed_overdue_std,已終止/已結清合約逾期繳款金額/數值 - 標準差,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,樣本標準差 stddev_samp
+closed_overdue_median,已終止/已結清合約逾期繳款金額/數值 - 中位數,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,median
+closed_overdue_mode,已終止/已結清合約逾期繳款金額/數值 - 眾數,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,最常出現的值
+closed_overdue_n_unique,已終止/已結清合約逾期繳款金額/數值 - 不同值數量,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,count distinct
+closed_overdue_positive_count,已終止/已結清合約逾期繳款金額/數值 - 大於 0 的筆數,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,x > 0 的筆數
+closed_overdue_overdue_rate,已終止/已結清合約逾期繳款金額/數值 - 大於 0 的比例,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,大於 0 筆數 / 非空筆數
+closed_overdue_mean_positive,已終止/已結清合約逾期繳款金額/數值 - 大於 0 時的平均值,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,只計算 x > 0 的平均
+closed_overdue_sum_positive,已終止/已結清合約逾期繳款金額/數值 - 大於 0 的總和,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,只加總 x > 0
+closed_overdue_null_count,已終止/已結清合約逾期繳款金額/數值 - 缺失筆數,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,NULL 筆數
+closed_overdue_null_rate,已終止/已結清合約逾期繳款金額/數值 - 缺失比例,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,NULL 筆數 / 總筆數
+closed_overdue_non_null_count,已終止/已結清合約逾期繳款金額/數值 - 有資料筆數,連續型基本統計,已終止/已結清合約逾期繳款金額/數值,非 NULL 筆數
+active_collateral_value_mean,存續中合約擔保品價值 - 平均值,連續型基本統計,存續中合約擔保品價值,非空值平均
+active_collateral_value_max,存續中合約擔保品價值 - 最大值,連續型基本統計,存續中合約擔保品價值,非空值最大值
+active_collateral_value_std,存續中合約擔保品價值 - 標準差,連續型基本統計,存續中合約擔保品價值,樣本標準差 stddev_samp
+active_collateral_value_median,存續中合約擔保品價值 - 中位數,連續型基本統計,存續中合約擔保品價值,median
+active_collateral_value_mode,存續中合約擔保品價值 - 眾數,連續型基本統計,存續中合約擔保品價值,最常出現的值
+active_collateral_value_n_unique,存續中合約擔保品價值 - 不同值數量,連續型基本統計,存續中合約擔保品價值,count distinct
+active_collateral_value_positive_count,存續中合約擔保品價值 - 大於 0 的筆數,連續型基本統計,存續中合約擔保品價值,x > 0 的筆數
+active_collateral_value_overdue_rate,存續中合約擔保品價值 - 大於 0 的比例,連續型基本統計,存續中合約擔保品價值,大於 0 筆數 / 非空筆數
+active_collateral_value_mean_positive,存續中合約擔保品價值 - 大於 0 時的平均值,連續型基本統計,存續中合約擔保品價值,只計算 x > 0 的平均
+active_collateral_value_sum_positive,存續中合約擔保品價值 - 大於 0 的總和,連續型基本統計,存續中合約擔保品價值,只加總 x > 0
+active_collateral_value_null_count,存續中合約擔保品價值 - 缺失筆數,連續型基本統計,存續中合約擔保品價值,NULL 筆數
+active_collateral_value_null_rate,存續中合約擔保品價值 - 缺失比例,連續型基本統計,存續中合約擔保品價值,NULL 筆數 / 總筆數
+active_collateral_value_non_null_count,存續中合約擔保品價值 - 有資料筆數,連續型基本統計,存續中合約擔保品價值,非 NULL 筆數
+closed_collateral_value_mean,已結清合約擔保品價值 - 平均值,連續型基本統計,已結清合約擔保品價值,非空值平均
+closed_collateral_value_max,已結清合約擔保品價值 - 最大值,連續型基本統計,已結清合約擔保品價值,非空值最大值
+closed_collateral_value_std,已結清合約擔保品價值 - 標準差,連續型基本統計,已結清合約擔保品價值,樣本標準差 stddev_samp
+closed_collateral_value_median,已結清合約擔保品價值 - 中位數,連續型基本統計,已結清合約擔保品價值,median
+closed_collateral_value_mode,已結清合約擔保品價值 - 眾數,連續型基本統計,已結清合約擔保品價值,最常出現的值
+closed_collateral_value_n_unique,已結清合約擔保品價值 - 不同值數量,連續型基本統計,已結清合約擔保品價值,count distinct
+closed_collateral_value_positive_count,已結清合約擔保品價值 - 大於 0 的筆數,連續型基本統計,已結清合約擔保品價值,x > 0 的筆數
+closed_collateral_value_overdue_rate,已結清合約擔保品價值 - 大於 0 的比例,連續型基本統計,已結清合約擔保品價值,大於 0 筆數 / 非空筆數
+closed_collateral_value_mean_positive,已結清合約擔保品價值 - 大於 0 時的平均值,連續型基本統計,已結清合約擔保品價值,只計算 x > 0 的平均
+closed_collateral_value_sum_positive,已結清合約擔保品價值 - 大於 0 的總和,連續型基本統計,已結清合約擔保品價值,只加總 x > 0
+closed_collateral_value_null_count,已結清合約擔保品價值 - 缺失筆數,連續型基本統計,已結清合約擔保品價值,NULL 筆數
+closed_collateral_value_null_rate,已結清合約擔保品價值 - 缺失比例,連續型基本統計,已結清合約擔保品價值,NULL 筆數 / 總筆數
+closed_collateral_value_non_null_count,已結清合約擔保品價值 - 有資料筆數,連續型基本統計,已結清合約擔保品價值,非 NULL 筆數
+active_dpd_recent3_mean,存續合約逾期天數時間序列 - 最近 3 期平均逾期天數,DPD 時間序列特徵,存續合約逾期天數時間序列,依年月與 num_group2 排序後，最近 3 筆平均
+active_dpd_recent6_mean,存續合約逾期天數時間序列 - 最近 6 期平均逾期天數,DPD 時間序列特徵,存續合約逾期天數時間序列,依年月與 num_group2 排序後，最近 6 筆平均
+active_dpd_recent12_mean,存續合約逾期天數時間序列 - 最近 12 期平均逾期天數,DPD 時間序列特徵,存續合約逾期天數時間序列,依年月與 num_group2 排序後，最近 12 筆平均
+active_dpd_trend,存續合約逾期天數時間序列 - 逾期趨勢斜率,DPD 時間序列特徵,存續合約逾期天數時間序列,依時間排序後，以 regr_slope 計算是否越來越嚴重
+active_dpd_last,存續合約逾期天數時間序列 - 最近一期逾期天數,DPD 時間序列特徵,存續合約逾期天數時間序列,依年月與 num_group2 排序後最新一筆
+active_dpd_recent_time_key,存續合約逾期天數時間序列 - 最近一期時間鍵,DPD 時間序列特徵,存續合約逾期天數時間序列,year * 12 + month 的最大有效時間
+active_dpd_consecutive_max,存續合約逾期天數時間序列 - 最長連續逾期期數,DPD 時間序列特徵,存續合約逾期天數時間序列,連續 dpd > 0 的最長長度
+active_dpd_current_streak,存續合約逾期天數時間序列 - 目前連續逾期期數,DPD 時間序列特徵,存續合約逾期天數時間序列,從最新一期往回看，連續 dpd > 0 的期數
+active_dpd_longest_good_streak,存續合約逾期天數時間序列 - 最長正常付款期數,DPD 時間序列特徵,存續合約逾期天數時間序列,連續 dpd = 0 的最長長度
+closed_dpd_recent3_mean,已終止/已結清合約逾期天數時間序列 - 最近 3 期平均逾期天數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,依年月與 num_group2 排序後，最近 3 筆平均
+closed_dpd_recent6_mean,已終止/已結清合約逾期天數時間序列 - 最近 6 期平均逾期天數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,依年月與 num_group2 排序後，最近 6 筆平均
+closed_dpd_recent12_mean,已終止/已結清合約逾期天數時間序列 - 最近 12 期平均逾期天數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,依年月與 num_group2 排序後，最近 12 筆平均
+closed_dpd_trend,已終止/已結清合約逾期天數時間序列 - 逾期趨勢斜率,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,依時間排序後，以 regr_slope 計算是否越來越嚴重
+closed_dpd_last,已終止/已結清合約逾期天數時間序列 - 最近一期逾期天數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,依年月與 num_group2 排序後最新一筆
+closed_dpd_recent_time_key,已終止/已結清合約逾期天數時間序列 - 最近一期時間鍵,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,year * 12 + month 的最大有效時間
+closed_dpd_consecutive_max,已終止/已結清合約逾期天數時間序列 - 最長連續逾期期數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,連續 dpd > 0 的最長長度
+closed_dpd_current_streak,已終止/已結清合約逾期天數時間序列 - 目前連續逾期期數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,從最新一期往回看，連續 dpd > 0 的期數
+closed_dpd_longest_good_streak,已終止/已結清合約逾期天數時間序列 - 最長正常付款期數,DPD 時間序列特徵,已終止/已結清合約逾期天數時間序列,連續 dpd = 0 的最長長度
+active_payment_date_min,存續合約繳款年月 - 最早有效年月,日期/年月特徵,存續合約繳款年月,year * 12 + month 的最小值
+active_payment_date_max,存續合約繳款年月 - 最晚有效年月,日期/年月特徵,存續合約繳款年月,year * 12 + month 的最大值
+active_payment_date_n_unique,存續合約繳款年月 - 不同年月數量,日期/年月特徵,存續合約繳款年月,有效年月 count distinct
+active_payment_date_duration,存續合約繳款年月 - 年月跨度,日期/年月特徵,存續合約繳款年月,最大年月鍵 - 最小年月鍵
+active_payment_date_recent,存續合約繳款年月 - 最近年月,日期/年月特徵,存續合約繳款年月,有效年月鍵最大值
+active_payment_date_null_count,存續合約繳款年月 - 年月缺失/無效筆數,日期/年月特徵,存續合約繳款年月,年月缺失或月份不在 1-12 的筆數
+active_payment_date_null_rate,存續合約繳款年月 - 年月缺失/無效比例,日期/年月特徵,存續合約繳款年月,年月缺失/無效筆數 / 總筆數
+active_payment_date_non_null_count,存續合約繳款年月 - 有效年月筆數,日期/年月特徵,存續合約繳款年月,有效年月筆數
+closed_payment_date_min,已終止/已結清合約繳款年月 - 最早有效年月,日期/年月特徵,已終止/已結清合約繳款年月,year * 12 + month 的最小值
+closed_payment_date_max,已終止/已結清合約繳款年月 - 最晚有效年月,日期/年月特徵,已終止/已結清合約繳款年月,year * 12 + month 的最大值
+closed_payment_date_n_unique,已終止/已結清合約繳款年月 - 不同年月數量,日期/年月特徵,已終止/已結清合約繳款年月,有效年月 count distinct
+closed_payment_date_duration,已終止/已結清合約繳款年月 - 年月跨度,日期/年月特徵,已終止/已結清合約繳款年月,最大年月鍵 - 最小年月鍵
+closed_payment_date_recent,已終止/已結清合約繳款年月 - 最近年月,日期/年月特徵,已終止/已結清合約繳款年月,有效年月鍵最大值
+closed_payment_date_null_count,已終止/已結清合約繳款年月 - 年月缺失/無效筆數,日期/年月特徵,已終止/已結清合約繳款年月,年月缺失或月份不在 1-12 的筆數
+closed_payment_date_null_rate,已終止/已結清合約繳款年月 - 年月缺失/無效比例,日期/年月特徵,已終止/已結清合約繳款年月,年月缺失/無效筆數 / 總筆數
+closed_payment_date_non_null_count,已終止/已結清合約繳款年月 - 有效年月筆數,日期/年月特徵,已終止/已結清合約繳款年月,有效年月筆數
+active_eval_type_mode,存續中合約擔保品估價類型 - 最常見類別,類別型特徵,存續中合約擔保品估價類型,mode
+active_eval_type_n_unique,存續中合約擔保品估價類型 - 不同類別數量,類別型特徵,存續中合約擔保品估價類型,count distinct
+active_eval_type_entropy,存續中合約擔保品估價類型 - 類別分布熵,類別型特徵,存續中合約擔保品估價類型,entropy，數值越高代表類別越分散
+active_eval_type_null_count,存續中合約擔保品估價類型 - 缺失筆數,類別型特徵,存續中合約擔保品估價類型,NULL 筆數
+active_eval_type_null_rate,存續中合約擔保品估價類型 - 缺失比例,類別型特徵,存續中合約擔保品估價類型,NULL 筆數 / 總筆數
+active_eval_type_non_null_count,存續中合約擔保品估價類型 - 有資料筆數,類別型特徵,存續中合約擔保品估價類型,非 NULL 筆數
+closed_eval_type_mode,已結清合約擔保品估價類型 - 最常見類別,類別型特徵,已結清合約擔保品估價類型,mode
+closed_eval_type_n_unique,已結清合約擔保品估價類型 - 不同類別數量,類別型特徵,已結清合約擔保品估價類型,count distinct
+closed_eval_type_entropy,已結清合約擔保品估價類型 - 類別分布熵,類別型特徵,已結清合約擔保品估價類型,entropy，數值越高代表類別越分散
+closed_eval_type_null_count,已結清合約擔保品估價類型 - 缺失筆數,類別型特徵,已結清合約擔保品估價類型,NULL 筆數
+closed_eval_type_null_rate,已結清合約擔保品估價類型 - 缺失比例,類別型特徵,已結清合約擔保品估價類型,NULL 筆數 / 總筆數
+closed_eval_type_non_null_count,已結清合約擔保品估價類型 - 有資料筆數,類別型特徵,已結清合約擔保品估價類型,非 NULL 筆數
+active_collateral_type_mode,存續中合約擔保品類型 - 最常見類別,類別型特徵,存續中合約擔保品類型,mode
+active_collateral_type_n_unique,存續中合約擔保品類型 - 不同類別數量,類別型特徵,存續中合約擔保品類型,count distinct
+active_collateral_type_entropy,存續中合約擔保品類型 - 類別分布熵,類別型特徵,存續中合約擔保品類型,entropy，數值越高代表類別越分散
+active_collateral_type_null_count,存續中合約擔保品類型 - 缺失筆數,類別型特徵,存續中合約擔保品類型,NULL 筆數
+active_collateral_type_null_rate,存續中合約擔保品類型 - 缺失比例,類別型特徵,存續中合約擔保品類型,NULL 筆數 / 總筆數
+active_collateral_type_non_null_count,存續中合約擔保品類型 - 有資料筆數,類別型特徵,存續中合約擔保品類型,非 NULL 筆數
+closed_collateral_type_mode,已結清合約擔保品類型 - 最常見類別,類別型特徵,已結清合約擔保品類型,mode
+closed_collateral_type_n_unique,已結清合約擔保品類型 - 不同類別數量,類別型特徵,已結清合約擔保品類型,count distinct
+closed_collateral_type_entropy,已結清合約擔保品類型 - 類別分布熵,類別型特徵,已結清合約擔保品類型,entropy，數值越高代表類別越分散
+closed_collateral_type_null_count,已結清合約擔保品類型 - 缺失筆數,類別型特徵,已結清合約擔保品類型,NULL 筆數
+closed_collateral_type_null_rate,已結清合約擔保品類型 - 缺失比例,類別型特徵,已結清合約擔保品類型,NULL 筆數 / 總筆數
+closed_collateral_type_non_null_count,已結清合約擔保品類型 - 有資料筆數,類別型特徵,已結清合約擔保品類型,非 NULL 筆數
+active_role_mode,存續中授信合約主體角色名稱 - 最常見類別,類別型特徵,存續中授信合約主體角色名稱,mode
+active_role_n_unique,存續中授信合約主體角色名稱 - 不同類別數量,類別型特徵,存續中授信合約主體角色名稱,count distinct
+active_role_entropy,存續中授信合約主體角色名稱 - 類別分布熵,類別型特徵,存續中授信合約主體角色名稱,entropy，數值越高代表類別越分散
+active_role_null_count,存續中授信合約主體角色名稱 - 缺失筆數,類別型特徵,存續中授信合約主體角色名稱,NULL 筆數
+active_role_null_rate,存續中授信合約主體角色名稱 - 缺失比例,類別型特徵,存續中授信合約主體角色名稱,NULL 筆數 / 總筆數
+active_role_non_null_count,存續中授信合約主體角色名稱 - 有資料筆數,類別型特徵,存續中授信合約主體角色名稱,非 NULL 筆數
+closed_role_mode,已結清授信合約主體角色名稱 - 最常見類別,類別型特徵,已結清授信合約主體角色名稱,mode
+closed_role_n_unique,已結清授信合約主體角色名稱 - 不同類別數量,類別型特徵,已結清授信合約主體角色名稱,count distinct
+closed_role_entropy,已結清授信合約主體角色名稱 - 類別分布熵,類別型特徵,已結清授信合約主體角色名稱,entropy，數值越高代表類別越分散
+closed_role_null_count,已結清授信合約主體角色名稱 - 缺失筆數,類別型特徵,已結清授信合約主體角色名稱,NULL 筆數
+closed_role_null_rate,已結清授信合約主體角色名稱 - 缺失比例,類別型特徵,已結清授信合約主體角色名稱,NULL 筆數 / 總筆數
+closed_role_non_null_count,已結清授信合約主體角色名稱 - 有資料筆數,類別型特徵,已結清授信合約主體角色名稱,非 NULL 筆數
+recomputed,以 sum_positive / positive_count 重算、max
+weighted_avg,非缺失值的個數的平均
+duration,日期類的統計指標
+consecutive_max,歷史最長連續逾期
+current_streak,最新一期往回的連續逾期
+longest_good_streak,歷史最長連續正常
+weighted_avg,比例類，用有效筆數加權
+recomputed,平均類，用分子/分母重新算
+mean_fallback,沒有專屬規則時，退回 avg

@@ -1,0 +1,8 @@
+比率類別,建議財務比率,計算方式,分子欄位,分母欄位,使用提醒
+償債能力,Debt-to-Income 總負債收入比(DTI),totaldebt_9A ÷ maininc_215A; mainoccupationinc_384A,totaldebt_9A,maininc_215A; mainoccupationinc_384A,"衡量客戶現行負債相對收入之壓力
+"
+逾期風險,Overdue Debt Ratio 逾期債務比率,totaldebtoverduevalue_178A ÷ totaloutstanddebtvalue_39A,totaldebtoverduevalue_178A; debtoverdue_47A; overdueamount_659A,totaloutstanddebtvalue_39A;,"存續合約中，逾期債務佔總未償債務的比例
+"
+流動性,Deposit-to-Debt 存款負債覆蓋率,"amtdepositincoming_4809444A / amtdebitoutgoing_4809440A
+
+",amtdepositincoming_4809444A, amtdebitoutgoing_4809440A,衡量現有存款能償還多少債務
