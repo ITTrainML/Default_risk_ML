@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("train_base_final3.parquet")
+df = pl.scan_parquet("test_base_final3_risk_level.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -1140,8 +1140,8 @@ y_train = train.select("target")
 y_test = test.select("target")
 
 ## 第一版 拔掉三個日期
-# x_train = train.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
-# x_test = test.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
+x_train = train.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
+x_test = test.drop(["case_id","target","WEEK_NUM","lastrejectdate_50D","maxdpdinstldate_3546855D","lastdelinqdate_224D"])
 
 ## 第二版 剩餘60特徵
 # x_train = train.select([
@@ -1271,68 +1271,68 @@ y_test = test.select("target")
 
 ## 第三版 剩餘30特徵
 
-x_train = train.select(["registaddr_zipcode_184M_appl",
-"price_1097A",
-"age_years_appl",
-"amount_4527230A_sum_positive",
-"disbursedcredamount_1113A",
-"pmts_dpd_1073P_recent_time_key__mean_fallback",
-"interestrate_311L",
-"residualamount_856A__min",
-"pmts_overdue_1140A_overdue_rate__weighted_avg",
-"totalamount_996A__mean",
-"tenure_years_max",
-"pmts_overdue_1140A_non_null_count__max",
-"numberofoutstandinstls_59L__min",
-"totalamount_6A__sum",
-"pmts_dpd_303P_trend__mean",
-"overdueamountmax_155A__std",
-"numberofoutstandinstls_59L__sum",
-"maxdbddpdtollast12m_3658940P",
-"cntpmts24_3658933L",
-"lastrejectdate_50D_days",
-"numberofoverdueinstlmax_1039L__min",
-"pmts_dpd_303P_recent_time_key__mean_fallback",
-"pmts_dpd_303P_mean_positive__recomputed",
-"maxdpdinstldate_3546855D_days",
-"numinstunpaidmaxest_4493212L",
-"maxdebt4_972A",
-"pmts_dpd_303P_non_null_count__sum",
-"incometype_1044T_appl",
-"overdueamountmax_35A__mean",
-"pctinstlsallpaidearl3d_427L"
-])
-x_test = test.select(["registaddr_zipcode_184M_appl",
-"price_1097A",
-"age_years_appl",
-"amount_4527230A_sum_positive",
-"disbursedcredamount_1113A",
-"pmts_dpd_1073P_recent_time_key__mean_fallback",
-"interestrate_311L",
-"residualamount_856A__min",
-"pmts_overdue_1140A_overdue_rate__weighted_avg",
-"totalamount_996A__mean",
-"tenure_years_max",
-"pmts_overdue_1140A_non_null_count__max",
-"numberofoutstandinstls_59L__min",
-"totalamount_6A__sum",
-"pmts_dpd_303P_trend__mean",
-"overdueamountmax_155A__std",
-"numberofoutstandinstls_59L__sum",
-"maxdbddpdtollast12m_3658940P",
-"cntpmts24_3658933L",
-"lastrejectdate_50D_days",
-"numberofoverdueinstlmax_1039L__min",
-"pmts_dpd_303P_recent_time_key__mean_fallback",
-"pmts_dpd_303P_mean_positive__recomputed",
-"maxdpdinstldate_3546855D_days",
-"numinstunpaidmaxest_4493212L",
-"maxdebt4_972A",
-"pmts_dpd_303P_non_null_count__sum",
-"incometype_1044T_appl",
-"overdueamountmax_35A__mean",
-"pctinstlsallpaidearl3d_427L"
-])
+# x_train = train.select(["registaddr_zipcode_184M_appl",
+# "price_1097A",
+# "age_years_appl",
+# "amount_4527230A_sum_positive",
+# "disbursedcredamount_1113A",
+# "pmts_dpd_1073P_recent_time_key__mean_fallback",
+# "interestrate_311L",
+# "residualamount_856A__min",
+# "pmts_overdue_1140A_overdue_rate__weighted_avg",
+# "totalamount_996A__mean",
+# "tenure_years_max",
+# "pmts_overdue_1140A_non_null_count__max",
+# "numberofoutstandinstls_59L__min",
+# "totalamount_6A__sum",
+# "pmts_dpd_303P_trend__mean",
+# "overdueamountmax_155A__std",
+# "numberofoutstandinstls_59L__sum",
+# "maxdbddpdtollast12m_3658940P",
+# "cntpmts24_3658933L",
+# "lastrejectdate_50D_days",
+# "numberofoverdueinstlmax_1039L__min",
+# "pmts_dpd_303P_recent_time_key__mean_fallback",
+# "pmts_dpd_303P_mean_positive__recomputed",
+# "maxdpdinstldate_3546855D_days",
+# "numinstunpaidmaxest_4493212L",
+# "maxdebt4_972A",
+# "pmts_dpd_303P_non_null_count__sum",
+# "incometype_1044T_appl",
+# "overdueamountmax_35A__mean",
+# "pctinstlsallpaidearl3d_427L"
+# ])
+# x_test = test.select(["registaddr_zipcode_184M_appl",
+# "price_1097A",
+# "age_years_appl",
+# "amount_4527230A_sum_positive",
+# "disbursedcredamount_1113A",
+# "pmts_dpd_1073P_recent_time_key__mean_fallback",
+# "interestrate_311L",
+# "residualamount_856A__min",
+# "pmts_overdue_1140A_overdue_rate__weighted_avg",
+# "totalamount_996A__mean",
+# "tenure_years_max",
+# "pmts_overdue_1140A_non_null_count__max",
+# "numberofoutstandinstls_59L__min",
+# "totalamount_6A__sum",
+# "pmts_dpd_303P_trend__mean",
+# "overdueamountmax_155A__std",
+# "numberofoutstandinstls_59L__sum",
+# "maxdbddpdtollast12m_3658940P",
+# "cntpmts24_3658933L",
+# "lastrejectdate_50D_days",
+# "numberofoverdueinstlmax_1039L__min",
+# "pmts_dpd_303P_recent_time_key__mean_fallback",
+# "pmts_dpd_303P_mean_positive__recomputed",
+# "maxdpdinstldate_3546855D_days",
+# "numinstunpaidmaxest_4493212L",
+# "maxdebt4_972A",
+# "pmts_dpd_303P_non_null_count__sum",
+# "incometype_1044T_appl",
+# "overdueamountmax_35A__mean",
+# "pctinstlsallpaidearl3d_427L"
+# ])
 
 
 
@@ -1391,6 +1391,8 @@ model.fit(
     x_train_pd,
     y_train_pd
 )
+
+## 這個就是輸出機率
 
 train_probability = model.predict_proba(x_train_pd)[:,1]
 test_probability = model.predict_proba(x_test_pd)[:,1]
@@ -1720,6 +1722,7 @@ importance_df.to_csv("importance_df.csv", index=False, encoding="utf-8-sig")
 
 
 # %%
+#region[rgba(231,76,60,0.15)]
 
 ### 處理三個日期格式(使用申請日相減)
 
@@ -1802,14 +1805,328 @@ a5 = a4.with_columns(
 a5.sink_parquet("train_base_final2.parquet")
 # b5.sink_parquet("test_base_final2.parquet")
 
+#endregion
 # %%
 
-a = pl.scan_parquet("train_base_final2.parquet")
-b = pl.scan_parquet("test_base_final2.parquet")
+# a = pl.scan_parquet("train_base_final2.parquet")
+# b = pl.scan_parquet("test_base_final2.parquet")
 
-a = a.drop("date_decision")
-b = b.drop("date_decision")
+# a = a.drop("date_decision")
+# b = b.drop("date_decision")
 
-a.sink_parquet("train_base_final3.parquet")
-b.sink_parquet("test_base_final3.parquet")
+# a.sink_parquet("train_base_final3.parquet")
+# b.sink_parquet("test_base_final3.parquet")
+
+
+df = pl.scan_parquet("test_base_final3.parquet")
+
+#print(test_probability)
+
+df_updated = df.with_columns(
+    pl.Series("prob", test_probability)
+)
+
+print(df_updated)
+
+df_updated.sink_parquet("test_base_final3_prob.parquet")
+
+# %%
+#region[rgba(46,204,113,0.15)]
+
+### 將測試集的模型預測機率轉為四種風險程度
+
+import numpy as np
+import pandas as pd
+
+df = pl.scan_parquet("test_base_final3_prob.parquet")
+df = df.collect().to_pandas()
+
+
+# 違約機率分布
+df["prob"].describe(
+    percentiles=[
+        0.01,
+        0.05,
+        0.1,
+        0.25,
+        0.5,
+        0.75,
+        0.9,
+        0.95,
+        0.99
+    ]
+)
+
+
+
+"""
+等級	    機率	        約占比例	 建議
+A（極低）	≤ 0.20%	        10%	        可快速核准
+B（低）	    0.20% ~ 1.03%	40%	        一般核准
+C（中）	    1.03% ~ 6.29%	40%	        補充審查
+D（高）	    > 6.29%	        10%	        嚴格審查或拒件
+"""
+
+
+# result = pd.DataFrame({
+#     "actual": df["target"],
+#     "pred_prob": df["prob"]
+# })
+
+# 設定門檻
+A_threshold = 0.002     
+B_threshold = 0.0103
+c_threshold = 0.0629    
+
+df["risk_level"] = pd.cut(
+    df["prob"],
+    bins=[-np.inf, A_threshold, B_threshold, c_threshold , np.inf],
+    labels=["A", "B", "C", "D"],
+    include_lowest=True
+)
+
+
+#df.to_parquet("test_base_final3_risk_level.parquet")
+
+## 各風險群的實際違約率
+
+# risk_performance = (
+#     df
+#     .groupby("risk_level", observed=True)
+#     .agg(
+#         sample_count=("target", "size"),
+#         actual_default_count=("target", "sum"),
+#         actual_default_rate=("target", "mean"),
+#         mean_predicted_probability=("prob", "mean"),
+#         min_predicted_probability=("prob", "min"),
+#         max_predicted_probability=("prob", "max")
+#     )
+#     .reset_index()
+# )
+
+# risk_performance
+
+#endregion
+# %%
+#region[rgba(155,89,182,0.15)]
+
+### 分析False Negative（偽陰性） ： 模型判定為低風險，但實際違約。
+
+import numpy as np
+import pandas as pd
+
+df = pl.scan_parquet("test_base_final3_risk_level.parquet")
+df = df.collect().to_pandas()
+
+# 極低風險但實際違約：False Negative 個案
+fn_low = df.loc[
+    (df["risk_level"] == "A") &
+    (df["target"] == 1)
+].copy()
+
+# 極低風險且實際未違約：True Negative 基準組
+tn_low = df.loc[
+    (df["risk_level"] == "A") &
+    (df["target"] == 0)
+].copy()
+
+print("低風險違約戶 FN：", len(fn_low))
+print("低風險未違約戶 TN：", len(tn_low))
+print(
+    "低風險群實際違約率：",
+    len(fn_low) / (len(fn_low) + len(tn_low))
+)
+
+def compare_numeric_features(
+    fn_df: pd.DataFrame,
+    tn_df: pd.DataFrame,
+    exclude_columns: list[str] | None = None
+) -> pd.DataFrame:
+    """
+    比較低風險違約戶 FN 與低風險未違約戶 TN 的數值特徵。
+
+    standardized_median_diff：
+        (FN中位數 - TN中位數) / TN四分位距
+
+    絕對值越大，代表兩群差異越明顯。
+    """
+
+    if exclude_columns is None:
+        exclude_columns = []
+
+    numeric_columns = fn_df.select_dtypes(
+        include=["number", "bool"]
+    ).columns.tolist()
+
+    numeric_columns = [
+        col for col in numeric_columns
+        if col not in exclude_columns
+    ]
+
+    rows = []
+
+    for col in numeric_columns:
+        fn_values = pd.to_numeric(fn_df[col], errors="coerce")
+        tn_values = pd.to_numeric(tn_df[col], errors="coerce")
+
+        fn_non_null = fn_values.dropna()
+        tn_non_null = tn_values.dropna()
+
+        if len(fn_non_null) == 0 or len(tn_non_null) == 0:
+            continue
+
+        fn_mean = fn_non_null.mean()
+        tn_mean = tn_non_null.mean()
+
+        fn_median = fn_non_null.median()
+        tn_median = tn_non_null.median()
+
+        tn_q1 = tn_non_null.quantile(0.25)
+        tn_q3 = tn_non_null.quantile(0.75)
+        tn_iqr = tn_q3 - tn_q1
+
+        if pd.notna(tn_iqr) and tn_iqr > 0:
+            standardized_diff = (
+                fn_median - tn_median
+            ) / tn_iqr
+        else:
+            standardized_diff = np.nan
+
+        rows.append({
+            "feature": col,
+            "fn_count": fn_non_null.size,
+            "tn_count": tn_non_null.size,
+
+            "fn_mean": fn_mean,
+            "tn_mean": tn_mean,
+            "mean_diff": fn_mean - tn_mean,
+
+            "fn_median": fn_median,
+            "tn_median": tn_median,
+            "median_diff": fn_median - tn_median,
+
+            "tn_q1": tn_q1,
+            "tn_q3": tn_q3,
+            "standardized_median_diff": standardized_diff,
+
+            "fn_missing_rate": fn_values.isna().mean(),
+            "tn_missing_rate": tn_values.isna().mean(),
+            "missing_rate_diff": (
+                fn_values.isna().mean()
+                - tn_values.isna().mean()
+            ),
+
+            # 14筆中，有多少比例高於TN中位數
+            "fn_above_tn_median_rate": (
+                fn_non_null > tn_median
+            ).mean(),
+
+            # 14筆中，有多少比例高於TN第75百分位
+            "fn_above_tn_q3_rate": (
+                fn_non_null > tn_q3
+            ).mean(),
+
+            # 14筆中，有多少比例低於TN第25百分位
+            "fn_below_tn_q1_rate": (
+                fn_non_null < tn_q1
+            ).mean()
+        })
+
+    result = pd.DataFrame(rows)
+
+    if result.empty:
+        return result
+
+    result["abs_standardized_diff"] = (
+        result["standardized_median_diff"].abs()
+    )
+
+    return result.sort_values(
+        ["abs_standardized_diff", "missing_rate_diff"],
+        ascending=[False, False]
+    ).reset_index(drop=True)
+
+exclude_columns = [
+    "target",
+    "prob"
+]
+
+numeric_comparison = compare_numeric_features(
+    fn_df=fn_low,
+    tn_df=tn_low,
+    exclude_columns=exclude_columns
+)
+
+def compare_categorical_features(
+    fn_df: pd.DataFrame,
+    tn_df: pd.DataFrame,
+    exclude_columns: list[str] | None = None
+) -> pd.DataFrame:
+
+    if exclude_columns is None:
+        exclude_columns = []
+
+    categorical_columns = fn_df.select_dtypes(
+        include=["object", "category", "string"]
+    ).columns.tolist()
+
+    categorical_columns = [
+        col for col in categorical_columns
+        if col not in exclude_columns
+    ]
+
+    rows = []
+
+    for col in categorical_columns:
+        fn_values = fn_df[col].astype("object").fillna("__MISSING__")
+        tn_values = tn_df[col].astype("object").fillna("__MISSING__")
+
+        # FN出現過的所有類別
+        fn_counts = fn_values.value_counts(dropna=False)
+        fn_rates = fn_values.value_counts(
+            normalize=True,
+            dropna=False
+        )
+
+        tn_rates = tn_values.value_counts(
+            normalize=True,
+            dropna=False
+        )
+
+        for category_value in fn_counts.index:
+            fn_rate = fn_rates.get(category_value, 0)
+            tn_rate = tn_rates.get(category_value, 0)
+
+            rows.append({
+                "feature": col,
+                "category": category_value,
+                "fn_count": fn_counts.get(category_value, 0),
+                "fn_rate": fn_rate,
+                "tn_rate": tn_rate,
+                "rate_diff": fn_rate - tn_rate,
+                "abs_rate_diff": abs(fn_rate - tn_rate)
+            })
+
+    result = pd.DataFrame(rows)
+
+    if result.empty:
+        return result
+
+    return result.sort_values(
+        ["abs_rate_diff", "fn_count"],
+        ascending=[False, False]
+    ).reset_index(drop=True)
+
+categorical_comparison = compare_categorical_features(
+    fn_df=fn_low,
+    tn_df=tn_low,
+    exclude_columns=["risk_level"]
+)
+
+
+
+numeric_comparison.to_csv("A級分析.csv", index=False, encoding="utf-8-sig")
+categorical_comparison.to_csv("A級分析(類別).csv", index=False, encoding="utf-8-sig")
+
+#endregion
 # %%
