@@ -1,0 +1,103 @@
+bureau_a2_merge 清洗與聚合規則
+
+資料清洗規則：
+
+1.將以下欄位刪除
+
+(1)已結清合約的利率。
+(2)存續中合約的利率。
+(3)已結清合約的分類。
+(4)已終止授信合約的合約狀態。
+(5)存續中授信合約的到期日。
+(6)已結清授信合約的到期日。
+(7)授信合約結清的日期。
+(8)已結清授信合約的起始日期。
+(9)授信結清日期（合約終止日）。
+(10)聯徵中心資料中已終止合約發生最大逾期天數的月份。
+(11)聯徵中心存續合約發生最大逾期天數的月份。
+(12)存續合約發生最大逾期天數（DPD）的年份。
+(13)自聯徵中心取得之已結清合約發生最大逾期天數的年份。
+(14)與已結清合約相關之金融機構的名稱。
+(15)存續中合約的金融機構名稱。
+(16)聯徵中心已結清合約的利率。
+(17)聯徵中心存續合約最近一次更新的日期。
+(18)聯徵中心已結清合約最近一次更新的日期。
+(19)存續中合約的利率。_2
+(20)已結清合約的利率。_1
+(21)聯徵中心存續中的合約件數。
+(22)已結清授信合約的件數。
+(23)已結清合約的分期期數。
+(24)存續中合約的分期期數。
+(25)已結清合約逾期分期期數達最大時的日期。
+(26)存續合約逾期分期期數達最大時的日期。
+(27)已結清合約逾期金額達最大時的日期。
+(28)存續合約逾期金額達最大時的日期。
+(29)已結清合約發生最大逾期金額的月份。
+(30)存續合約發生最大逾期金額的月份。
+(31)存續合約發生最大逾期金額的年份。
+(32)已結清合約發生最大逾期金額的年份。
+(33)已結清合約的分期繳款頻率。
+(34)存續中合約的分期繳款頻率。
+(35)已結清合約的授信用途。
+(36)聯徵中心公開來源最近一次更新的日期。
+
+
+2.連續型特徵離群值：最大值1%(採99%PR補值，不刪除)   (已處理過)
+
+3.欄位"已結清合約的最大逾期天數。" -> 刪除負值
+
+
+
+聚合規則：
+
+利用 (case_id,num_group1) 做排序
+Key 為 case_id
+
+1、針對a1原生欄位
+
+連續型特徵：
+
+
+第一類：Basic Statistics（基本統計）
+
+dpd_mean 平均逾期天數 dpd_max 最嚴重逾期天數 dpd_std 波動程度 dpd_median 逾期天數中位數 
+
+第二類：Overdue Behavior
+
+dpd_positive_count 發生逾期數量dpd_overdue_rate 逾期期數比例dpd_mean_positive 發生逾期時平均逾期天數dpd_sum_positive 總逾期天數
+
+
+第三類：Missing Information
+
+dpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
+
+
+
+類別欄位特徵：
+
+mode,n_unique,entropydpd_null_count 缺失筆數dpd_null_rate 缺失比例dpd_non_null_count 有資料筆數
+
+
+2、針對a2聚合來的欄位
+
+mean	採用 加權平均(sum(dpd_sum) / sum(non_null_count))、合約等權平均(mean(dpd_mean))、max
+max	採用 max
+median	採用mean、max
+mean_positive	採用以 sum_positive / positive_count 重算、max
+positive_count	採用 sum、max、有逾期合約數
+overdue_rate	採用 以總分子／總分母重算、max
+sum_positive	採用 sum
+last	採用 依最近日期選取、max 選配
+recent3	採用 mean、max
+recent6	採用 mean、max
+consecutive_max	採用 max、mean 選配
+current_streak	 採用 max、>0 合約數與比例
+std	採用 mean、max
+iqr	 採用 mean、max
+null_count	採用sum
+null_rate	採用 加權重算、max
+non_null_count	採用 sum
+
+
+檢查：
+完成聚合後，列出幾筆(3-5個case_id，展示聚合後是正確無誤的)
