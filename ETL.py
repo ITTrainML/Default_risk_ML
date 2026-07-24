@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("test_base_final3_risk_level.parquet")
+df = pl.scan_parquet("train_base_final4.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -1129,8 +1129,8 @@ from sklearn.metrics import (
     brier_score_loss
 )
 
-train = pl.scan_parquet("train_base_final3.parquet")
-test = pl.scan_parquet("test_base_final3.parquet")
+train = pl.scan_parquet("train_base_final4.parquet")
+test = pl.scan_parquet("test_base_final4.parquet")
 
 
 
@@ -2132,15 +2132,45 @@ categorical_comparison.to_csv("A級分析(類別).csv", index=False, encoding="u
 # %%
 #region[rgba(52,152,219,0.15)]
 
-#### 使用SHAP解釋
+#### 針對時間飄移嚴重的特徵做刪減
 
-import numpy as np
-import pandas as pd
-import shap
-import matplotlib.pyplot as plt
+import polars as pl
 
-print("SHAP version:", shap.__version__)
+train = pl.scan_parquet("train_base_final3.parquet")
+test = pl.scan_parquet("test_base_final3.parquet")
 
+remove = ("pmts_dpd_1073P_recent_time_key__mean_fallback",
+"requesttype_4525192L",
+"subjectroles_name_838M_entropy__mean",
+"numinstunpaidmaxest_4493212L",
+"pmtaverage_3A",
+"empl_industry_691L_appl",
+"registaddr_zipcode_184M_appl",
+"pmts_year_1139T_pmts_month_158T_min__min",
+"education_927M_appl",
+"pmts_dpd_303P_recent_time_key__max_fallback",
+"amount_4527230A_sum_positive",
+"familystate_447L_appl",
+"collater_valueofguarantee_1124L_null_count__max",
+"totalamount_6A__sum",
+"overdueamountmax_35A__mean",
+"amount_4527230A_positive_count",
+"overdueamountmax_35A__std",
+"pmts_dpd_303P_recent_time_key__mean_fallback",
+"pmts_dpd_303P_trend__mean",
+"pmts_dpd_303P_non_null_count__sum",
+"pmts_dpd_303P_mean_positive__recomputed",
+"pmts_dpd_303P_std__max",
+"pmts_dpd_303P_n_unique__sum",
+"pmts_dpd_303P_longest_good_streak__max",
+"pmts_year_507T_pmts_month_706T_min__min",
+)
+
+train1 = train.drop(remove)
+test1 = test.drop(remove)
+
+train1.sink_parquet("train_base_final4.parquet")
+test1.sink_parquet("test_base_final4.parquet")
 
 #endregion
 # %%
