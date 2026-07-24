@@ -1689,36 +1689,71 @@ display(
 
 ### 畫重要度圖
 
-importance_df = pd.DataFrame({
-    "Feature": x_train_pd.columns,
-    "Importance": model.feature_importances_
-})
-
-importance_df = (
-    importance_df
-    .sort_values(
-        "Importance",
-        ascending=False
-    )
-    .reset_index(drop=True)
-)
-
-display(importance_df)
-
 import matplotlib.pyplot as plt
 import lightgbm as lgb
 
-plt.figure(figsize=(10,12))
+# importance_df = pd.DataFrame({
+#     "Feature": x_train_pd.columns,
+#     "Importance": model.feature_importances_
+# })
 
-lgb.plot_importance(
-    model,
-    max_num_features=30,
-    importance_type="gain"
+# importance_df = (
+#     importance_df
+#     .sort_values(
+#         "Importance",
+#         ascending=False
+#     )
+#     .reset_index(drop=True)
+# )
+
+# display(importance_df)
+
+# import matplotlib.pyplot as plt
+# import lightgbm as lgb
+
+# plt.figure(figsize=(10,12))
+
+# lgb.plot_importance(
+#     model,
+#     max_num_features=30,
+#     importance_type="gain"
+# )
+
+# plt.show()
+
+# importance_df.to_csv("importance_df.csv", index=False, encoding="utf-8-sig")
+
+# 1. 抓取時【明確指定】要拿 'gain' (透過 model.booster_ 提取)
+importance_df = pd.DataFrame(
+    {
+        "Feature": x_train_pd.columns,
+        "Importance": model.booster_.feature_importance(
+            importance_type="gain"
+        ),
+    }
 )
 
-plt.show()
+# 2. 排序
+importance_df = importance_df.sort_values(
+    "Importance", ascending=False
+).reset_index(drop=True)
 
+# 3. 顯示表格
+display(importance_df)
+
+# 4. 匯出 CSV (寫入硬碟)
 importance_df.to_csv("importance_df.csv", index=False, encoding="utf-8-sig")
+
+# 5. 直接用匯出的 Dataframe 畫圖 (確保圖表與 CSV 完全一致！)
+top_30 = importance_df.head(30).iloc[::-1]  # 取前 30 名並反轉，讓最厲害的排在最上面
+
+plt.figure(figsize=(10, 8))
+plt.barh(top_30["Feature"], top_30["Importance"], color="skyblue")
+plt.xlabel("Importance (Gain)")
+plt.title("Top 30 Feature Importance (Gain)")
+plt.grid(axis="x", linestyle="--", alpha=0.7)
+plt.tight_layout()
+plt.show()
 
 
 # %%
