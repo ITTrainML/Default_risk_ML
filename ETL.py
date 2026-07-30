@@ -44,7 +44,7 @@ import tkinter as tk
 from pandastable import Table
 
 
-df = pl.scan_parquet("train_base_final4.parquet")
+df = pl.scan_parquet("train_static_0_merge.parquet")
 #print(df.head(5).collect())
 #print(df.head(5).collect().glimpse())
 
@@ -73,8 +73,10 @@ root.mainloop()
 #region[rgba(46,204,113,0.15)]
 
 ### 檢查類別變數
-df = pl.scan_parquet("bureau_a2_merge.parquet")
-COLUMN = "擔保品估價類型（存續中合約）。"
+import polars as pl
+
+df = pl.scan_parquet("train_static_0_merge.parquet")
+COLUMN = "使用相同行動電話號碼的人數。"
 
 result = (
     df
@@ -101,8 +103,8 @@ print(result)
 
 ### 檢查連續變數
 
-df = pl.scan_parquet("bureau_a2_merge.parquet")
-COLUMN = "依聯徵中心，已終止合約該筆繳款的逾期天數（num_group1－已終止合約，num_group2－繳款）。"
+df = pl.scan_parquet("train_static_0_merge.parquet")
+COLUMN = "mobilephncnt_593L"
 
 result = (
     df
@@ -113,21 +115,21 @@ result = (
     .collect()
 )
 
-result = result.with_columns(
-    (
-    df
-    .select([
-        pl.col(COLUMN).min().alias("min"),
-        pl.col(COLUMN).quantile(0.25).alias("p25"),
-        pl.col(COLUMN).quantile(0.5).alias("med"),
-        pl.col(COLUMN).quantile(0.75).alias("p75"),
-        pl.col(COLUMN).quantile(0.99).alias("p99"),
-        pl.col(COLUMN).max().alias("max")
+# result = result.with_columns(
+#     (
+#     df
+#     .select([
+#         pl.col(COLUMN).min().alias("min"),
+#         pl.col(COLUMN).quantile(0.25).alias("p25"),
+#         pl.col(COLUMN).quantile(0.5).alias("med"),
+#         pl.col(COLUMN).quantile(0.75).alias("p75"),
+#         pl.col(COLUMN).quantile(0.99).alias("p99"),
+#         pl.col(COLUMN).max().alias("max")
 
-    ])
-    .collect()
-    )
-)
+#     ])
+#     .collect()
+#     )
+# )
 
 print(result)
 
@@ -1379,7 +1381,10 @@ model = LGBMClassifier(
     n_estimators=500,
 
     learning_rate=0.05,
-
+# --- 正則化參數 ---
+    reg_alpha=0.1,  # L1 正則化 (預設 0.0)
+    reg_lambda=1,  # L2 正則化 (預設 0.0)
+    max_depth=6,  # 限制樹深 (防止過擬合)
     num_leaves=31,
 
     random_state=42,
@@ -2248,4 +2253,39 @@ weekly_gini = (
 )
 
 weekly_gini
+# %%
+## 驗證手機與違約率
+
+df = pl.scan_parquet("train_static_0_merge.parquet")
+df1 = df.select([
+    pl.col('case_id').alias('case_id'),
+    pl.col('使用相同行動電話號碼的人數。').alias('phone')
+    
+]).collect()
+
+ta = pl.scan_parquet("train_base.parquet")
+ta1 = ta.select([
+    pl.col('case_id').alias('case_id'),
+    pl.col('target').alias('target')
+    
+]).collect()
+
+merged_df = df1.join(ta1, on='case_id', how='left')
+
+result_df = (
+    merged_df.group_by('phone')
+      .agg([
+          pl.len().alias('總數量'),                 # 統計該分組的總筆數
+          pl.col('target').sum().alias('違約筆數'),   # 統計違約人數 (1的總和)
+          pl.col('target').mean().alias('違約率')    # 統計違約率 (1的比例)
+      ])
+      .sort('phone')                             # 依手機數量排序
+)
+
+import pandas as pd
+
+
+result_df = pd.DataFrame(result_df)
+result_df.to_csv("PHONE.csv", index=False, encoding="utf-8-sig")
+
 # %%
