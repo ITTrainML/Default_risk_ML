@@ -1,0 +1,7 @@
+duckdb>=1.4
+polars>=1.41
+pyarrow>=21.0
+category_encoders>=2.8
+scikit-learn>=1.7
+pandas>=2.3
+numpy>=2.3
